@@ -1,0 +1,2735 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Tarefas Realizadas</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1f2937">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tarefas">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+
+<!-- Libs -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<!-- Firebase (compat = global firebase object) -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #fafafa;
+    --surface: #ffffff;
+    --border: #e5e5e5;
+    --text: #1a1a1a;
+    --text-muted: #6b7280;
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --danger: #dc2626;
+    --success: #059669;
+    --radius: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  header {
+    margin-bottom: 32px;
+  }
+
+  h1 {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+  }
+
+  .subtitle {
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+  }
+
+  .input-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    position: relative;
+  }
+
+  .input-row input[type="date"] {
+    flex: 0 0 160px;
+  }
+
+  .input-row input[type="text"] {
+    flex: 1;
+  }
+
+  input, button, select {
+    font-family: inherit;
+    font-size: 14px;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    transition: all 0.15s;
+  }
+
+  input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+  }
+
+  button {
+    cursor: pointer;
+    font-weight: 500;
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+
+  button:hover {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+  }
+
+  button.secondary {
+    background: var(--surface);
+    color: var(--text);
+    border-color: var(--border);
+  }
+
+  button.secondary:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+  }
+
+  button.danger {
+    background: var(--surface);
+    color: var(--danger);
+    border-color: var(--border);
+  }
+
+  button.danger:hover {
+    background: #fee2e2;
+    border-color: var(--danger);
+  }
+
+  .category-select {
+    flex: 0 0 160px;
+  }
+
+  .category-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    background: #f3f4f6;
+    color: var(--text);
+    white-space: nowrap;
+    margin-right: 8px;
+  }
+
+  .category-chip .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .categories-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 360px;
+    overflow-y: auto;
+    margin-bottom: 12px;
+  }
+
+  .category-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  .category-row input[type="color"] {
+    flex: 0 0 40px;
+    width: 40px;
+    height: 36px;
+    padding: 2px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+
+  .category-row input[type="text"] {
+    flex: 1;
+  }
+
+  .category-row .delete-cat {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 18px;
+    padding: 4px 10px;
+  }
+
+  .category-row .delete-cat:hover {
+    color: var(--danger);
+    background: #fee2e2;
+    border-radius: 6px;
+  }
+
+  .add-category-btn {
+    width: 100%;
+    background: var(--surface);
+    color: var(--text);
+    border: 1px dashed var(--border);
+    margin-bottom: 8px;
+  }
+
+  .add-category-btn:hover {
+    background: #f9fafb;
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .autocomplete {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-top: 4px;
+    box-shadow: var(--shadow-md);
+    max-height: 220px;
+    overflow-y: auto;
+    z-index: 100;
+    display: none;
+  }
+
+  .autocomplete.active {
+    display: block;
+  }
+
+  .autocomplete-item {
+    padding: 10px 14px;
+    cursor: pointer;
+    font-size: 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .autocomplete-item:last-child {
+    border-bottom: none;
+  }
+
+  .autocomplete-item:hover,
+  .autocomplete-item.highlighted {
+    background: #f3f4f6;
+  }
+
+  .autocomplete-item .count {
+    font-size: 12px;
+    color: var(--text-muted);
+    background: #f3f4f6;
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+
+  .autocomplete-item:hover .count {
+    background: white;
+  }
+
+  .toolbar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+
+  .toolbar .spacer {
+    flex: 1;
+  }
+
+  .filter-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .filter-group label {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .day-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 16px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+
+  .day-header {
+    padding: 14px 20px;
+    background: #f9fafb;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .day-date {
+    font-weight: 600;
+    font-size: 15px;
+  }
+
+  .day-count {
+    font-size: 12px;
+    color: var(--text-muted);
+    background: var(--surface);
+    padding: 2px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+
+  .task-list {
+    list-style: none;
+  }
+
+  .task-item {
+    padding: 12px 20px 12px 16px;
+    border-bottom: 1px solid var(--border);
+    border-left: 4px solid transparent;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .task-item:last-child {
+    border-bottom: none;
+  }
+
+  .task-text {
+    flex: 1;
+    font-size: 14px;
+  }
+
+  .task-actions {
+    display: flex;
+    gap: 6px;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .task-item:hover .task-actions {
+    opacity: 1;
+  }
+
+  .icon-btn {
+    background: none;
+    border: none;
+    padding: 6px;
+    border-radius: 6px;
+    color: var(--text-muted);
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .icon-btn:hover {
+    background: #f3f4f6;
+    color: var(--text);
+  }
+
+  .icon-btn.delete:hover {
+    background: #fee2e2;
+    color: var(--danger);
+  }
+
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+  }
+
+  .empty-icon {
+    font-size: 40px;
+    margin-bottom: 12px;
+    opacity: 0.5;
+  }
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+
+  .modal-overlay.active {
+    display: flex;
+  }
+
+  .modal {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 24px;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: var(--shadow-md);
+  }
+
+  .modal h2 {
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+
+  .modal-row {
+    margin-bottom: 12px;
+  }
+
+  .modal-row label {
+    display: block;
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+
+  .modal-row input {
+    width: 100%;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 20px;
+  }
+
+  .stats {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  .stat-card {
+    flex: 1;
+    min-width: 140px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    box-shadow: var(--shadow);
+  }
+
+  .stat-value {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  .stat-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  /* Categorias */
+  .category-chips {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    align-items: center;
+  }
+
+  .category-chips .label {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-right: 4px;
+  }
+
+  .cat-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.15s;
+    user-select: none;
+  }
+
+  .cat-chip:hover {
+    border-color: var(--text-muted);
+  }
+
+  .cat-chip.active {
+    border-color: var(--text);
+    box-shadow: 0 0 0 2px rgba(0,0,0,0.05);
+  }
+
+  .cat-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .cat-manage {
+    background: none;
+    border: 1px dashed var(--border);
+    color: var(--text-muted);
+    padding: 5px 10px;
+    border-radius: 14px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  .cat-manage:hover {
+    border-color: var(--text-muted);
+    color: var(--text);
+    background: var(--surface);
+  }
+
+  .task-item {
+    border-left: 3px solid transparent;
+  }
+
+  .task-cat-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--text-muted);
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: #f3f4f6;
+    margin-right: 8px;
+    white-space: nowrap;
+  }
+
+  .cat-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 8px;
+    background: #f9fafb;
+  }
+
+  .cat-row input[type="text"] {
+    flex: 1;
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+
+  .cat-row input[type="color"] {
+    width: 40px;
+    height: 32px;
+    padding: 2px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    background: var(--surface);
+  }
+
+  .cat-row .icon-btn {
+    padding: 4px 8px;
+  }
+
+  /* Category text toggle in mgmt modal */
+  .cat-text-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--text-muted);
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+  }
+  .cat-text-toggle input { width: auto; margin: 0; }
+
+  /* Photo button row (under input) */
+  .photo-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    align-items: center;
+  }
+  .photo-btn {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    border-radius: 14px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .photo-btn:hover { background: #f3f4f6; border-color: #d1d5db; }
+  .photo-btn:disabled,
+  .photo-btn.uploading { opacity: 0.5; cursor: not-allowed; }
+  .photo-btn.uploading::after {
+    content: ' enviando…';
+  }
+  .pending-photos {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    flex: 1;
+  }
+  .pending-photo {
+    position: relative;
+    width: 52px;
+    height: 52px;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .pending-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .pending-photo-remove {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.7);
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Task photo thumbnails */
+  .task-photos {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+  }
+  .task-photo-thumb {
+    width: 56px;
+    height: 56px;
+    border-radius: 6px;
+    object-fit: cover;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    transition: transform 0.15s;
+  }
+  .task-photo-thumb:hover { transform: scale(1.05); }
+
+  /* Photo viewer */
+  #photoViewer {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+  }
+  #photoViewer.active { display: flex; }
+  #photoViewerImg {
+    max-width: 95vw;
+    max-height: 90vh;
+    object-fit: contain;
+    border-radius: 4px;
+  }
+  .photo-viewer-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    color: white;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    z-index: 1;
+  }
+  .photo-viewer-close:hover { background: rgba(255,255,255,0.25); }
+  .photo-viewer-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    color: white;
+    border: none;
+    font-size: 32px;
+    cursor: pointer;
+    z-index: 1;
+  }
+  .photo-viewer-nav:hover { background: rgba(255,255,255,0.25); }
+  .photo-viewer-nav.prev { left: 16px; }
+  .photo-viewer-nav.next { right: 16px; }
+  .photo-viewer-counter {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: white;
+    font-size: 14px;
+    background: rgba(0,0,0,0.5);
+    padding: 4px 12px;
+    border-radius: 12px;
+  }
+
+  /* Edit task photos */
+  .edit-task-photos {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    min-height: 0;
+  }
+  .edit-task-photos .pending-photo { width: 64px; height: 64px; }
+
+  /* Sync button */
+  .sync-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--surface);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .sync-btn:hover {
+    border-color: var(--text-muted);
+    color: var(--text);
+  }
+  .sync-btn .sync-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #9ca3af;
+    flex-shrink: 0;
+  }
+  .sync-btn.connected .sync-dot {
+    background: #10b981;
+    box-shadow: 0 0 0 3px rgba(16,185,129,0.15);
+    animation: sync-pulse 2s infinite;
+  }
+  .sync-btn.error .sync-dot {
+    background: #ef4444;
+  }
+  .sync-btn.syncing .sync-dot {
+    background: #f59e0b;
+    animation: sync-pulse 0.8s infinite;
+  }
+  @keyframes sync-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  @media (max-width: 600px) {
+    body { padding: 12px; padding-top: calc(env(safe-area-inset-top, 0) + 12px); padding-bottom: calc(env(safe-area-inset-bottom, 0) + 12px); }
+    h1 { font-size: 22px; }
+    .input-row { flex-direction: column; }
+    .input-row input[type="date"] { flex: 1; }
+    .autocomplete { left: 0; right: 0; }
+    .toolbar { flex-direction: column; align-items: stretch; }
+    .filter-group { flex-direction: column; align-items: stretch; }
+    .stat-card { padding: 10px 14px; }
+    .stat-value { font-size: 18px; }
+    .day-header { padding: 12px 14px; }
+    .task-item { padding: 10px 14px; }
+    .task-actions { opacity: 1; } /* always visible on touch devices */
+    button { min-height: 38px; }
+    input, select { min-height: 38px; font-size: 16px; } /* 16px prevents iOS zoom */
+  }
+
+  /* PDF Preview Overlay */
+  #pdfPreview {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #e5e7eb;
+    z-index: 9999;
+    overflow-y: auto;
+    flex-direction: column;
+  }
+  #pdfPreview.active { display: flex; }
+
+  .pdf-preview-toolbar {
+    position: sticky;
+    top: 0;
+    background: #1f2937;
+    color: white;
+    padding: 14px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    z-index: 10;
+  }
+  .pdf-preview-title {
+    font-weight: 600;
+    font-size: 15px;
+  }
+  .pdf-preview-actions { display: flex; gap: 8px; }
+  .pdf-preview-btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    background: #2563eb;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .pdf-preview-btn:hover { background: #1d4ed8; }
+  .pdf-preview-btn.secondary {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.3);
+  }
+  .pdf-preview-btn.secondary:hover {
+    background: rgba(255,255,255,0.1);
+  }
+  .pdf-preview-hint {
+    background: #fef3c7;
+    color: #92400e;
+    padding: 10px 24px;
+    font-size: 13px;
+    border-bottom: 1px solid #fde68a;
+  }
+  .pdf-preview-body {
+    background: white;
+    max-width: 210mm;
+    width: 100%;
+    margin: 24px auto;
+    padding: 18mm 16mm;
+    min-height: 297mm;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+  }
+
+  /* When printing, hide the main app and toolbar, show only the report content */
+  @media print {
+    html, body {
+      background: white !important;
+      -webkit-print-color-adjust: economy !important;
+      print-color-adjust: economy !important;
+    }
+    body.printing-mode > *:not(#pdfPreview) { display: none !important; }
+    body.printing-mode #pdfPreview {
+      display: block !important;
+      position: static !important;
+      background: white !important;
+      overflow: visible !important;
+    }
+    .pdf-preview-toolbar, .pdf-preview-hint { display: none !important; }
+    .pdf-preview-body {
+      background: white !important;
+      box-shadow: none !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      max-width: none !important;
+      width: auto !important;
+      min-height: 0 !important;
+    }
+    /* Force any background to be white/transparent during print */
+    .pdf-preview-body *,
+    .pdf-preview-body section,
+    .pdf-preview-body .day,
+    .pdf-preview-body .day-header {
+      background: transparent !important;
+    }
+    @page {
+      size: A4;
+      margin: 18mm 16mm 22mm 16mm;
+      background: white;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+      <div>
+        <h1>Tarefas Realizadas</h1>
+        <p class="subtitle">Registre suas tarefas diárias e gere relatórios em PDF</p>
+      </div>
+      <button id="syncStatusBtn" class="sync-btn" title="Configurar sincronização">
+        <span class="sync-dot"></span>
+        <span class="sync-label">Sync desativado</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-value" id="statTotal">0</div>
+      <div class="stat-label">Tarefas totais</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="statDays">0</div>
+      <div class="stat-label">Dias com registro</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="statToday">0</div>
+      <div class="stat-label">Tarefas hoje</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="input-row">
+      <input type="date" id="taskDate">
+      <input type="text" id="taskInput" placeholder="Descreva a tarefa realizada..." autocomplete="off">
+      <button id="addBtn">Adicionar</button>
+      <div class="autocomplete" id="autocomplete"></div>
+    </div>
+    <div class="category-chips" id="categoryChips"></div>
+    <div class="photo-row">
+      <input type="file" id="photoCameraInput" accept="image/*" capture="environment" style="display:none">
+      <input type="file" id="photoGalleryInput" accept="image/*" multiple style="display:none">
+      <button class="photo-btn" id="btnCamera" type="button">📷 Câmera</button>
+      <button class="photo-btn" id="btnGallery" type="button">🖼 Galeria</button>
+      <div class="pending-photos" id="pendingPhotos"></div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="filter-group">
+      <label>De:</label>
+      <input type="date" id="filterFrom">
+      <label>Até:</label>
+      <input type="date" id="filterTo">
+      <button class="secondary" id="clearFilter">Limpar</button>
+    </div>
+    <div class="spacer"></div>
+    <input type="file" id="importFile" accept=".xlsx,.xls,.csv" style="display:none">
+    <button class="secondary" id="importBtn">Importar Excel</button>
+    <button class="secondary" id="pdfBtn">Exportar PDF</button>
+    <button class="danger" id="clearAllBtn">Limpar tudo</button>
+  </div>
+
+  <div id="report"></div>
+
+</div>
+
+<!-- Photo viewer fullscreen -->
+<div id="photoViewer">
+  <button class="photo-viewer-close" onclick="closePhotoViewer()" aria-label="Fechar">×</button>
+  <button class="photo-viewer-nav prev" id="photoViewerPrev" onclick="photoViewerNav(-1)">‹</button>
+  <img id="photoViewerImg" alt="Foto">
+  <button class="photo-viewer-nav next" id="photoViewerNext" onclick="photoViewerNav(1)">›</button>
+  <div class="photo-viewer-counter" id="photoViewerCounter"></div>
+</div>
+
+<div class="modal-overlay" id="syncModal">
+  <div class="modal" style="max-width:560px">
+    <h2>Sincronização entre dispositivos</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px">
+      Cole abaixo a configuração do seu projeto Firebase. Suas tarefas vão sincronizar em tempo real entre desktop e iPhone.
+    </p>
+    <details style="margin-bottom:14px;font-size:13px">
+      <summary style="cursor:pointer;color:var(--accent);font-weight:500">Como obter a configuração?</summary>
+      <ol style="margin:10px 0 0 20px;color:var(--text-muted);line-height:1.7">
+        <li>Acesse <a href="https://console.firebase.google.com" target="_blank" style="color:var(--accent)">console.firebase.google.com</a> e crie um projeto (grátis)</li>
+        <li>No menu, clique em <strong>Firestore Database</strong> → Criar banco de dados → modo de teste</li>
+        <li>Volte ao painel inicial, clique no ícone <strong>&lt;/&gt;</strong> (Web) para registrar um app web</li>
+        <li>Copie o objeto <code>firebaseConfig</code> e cole abaixo</li>
+      </ol>
+    </details>
+    <div class="modal-row">
+      <label>Configuração Firebase (cole o objeto inteiro)</label>
+      <textarea id="syncConfigInput" rows="9" placeholder='{
+  "apiKey": "AIza...",
+  "authDomain": "seu-projeto.firebaseapp.com",
+  "projectId": "seu-projeto",
+  "storageBucket": "seu-projeto.appspot.com",
+  "messagingSenderId": "...",
+  "appId": "..."
+}' style="width:100%;font-family:monospace;font-size:12px;padding:10px;border:1px solid var(--border);border-radius:var(--radius);resize:vertical"></textarea>
+    </div>
+    <div class="modal-row">
+      <label>Código de sincronização (mesmo código nos 2 dispositivos)</label>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="syncCodeInput" placeholder="ex: tiago-tarefas" style="flex:1">
+        <button class="secondary" id="generateSyncCode" type="button">Gerar</button>
+      </div>
+      <small style="display:block;margin-top:6px;color:var(--text-muted);font-size:12px">Use o mesmo código no celular e no desktop para que os dados sincronizem.</small>
+    </div>
+    <div id="syncStatusMsg" style="display:none;padding:10px;border-radius:6px;margin-top:10px;font-size:13px"></div>
+    <div class="modal-actions">
+      <button class="danger" id="syncDisconnect" style="display:none">Desconectar</button>
+      <button class="secondary" id="syncCancel">Cancelar</button>
+      <button id="syncConnect">Conectar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Print preview overlay -->
+<div id="pdfPreview">
+  <div class="pdf-preview-toolbar">
+    <span class="pdf-preview-title">Pré-visualização do Relatório</span>
+    <div class="pdf-preview-actions">
+      <button class="pdf-preview-btn" onclick="window.print()">🖨 Imprimir / Salvar como PDF</button>
+      <button class="pdf-preview-btn secondary" onclick="closePdfPreview()">Fechar</button>
+    </div>
+  </div>
+  <div class="pdf-preview-hint">
+    Use <strong>Ctrl+P</strong> (ou <strong>Cmd+P</strong> no Mac) ou clique no botão acima. No diálogo de impressão, escolha <strong>"Salvar como PDF"</strong> como destino.
+  </div>
+  <style id="pdfPreviewStyles"></style>
+  <div id="pdfPreviewBody" class="pdf-preview-body"></div>
+</div>
+
+<div class="modal-overlay" id="catModal">
+  <div class="modal" style="max-width:500px">
+    <h2>Gerenciar categorias</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">
+      Crie categorias com cores para identificar o propósito de cada tarefa.
+    </p>
+    <div id="catList"></div>
+    <button class="secondary" id="catAdd" style="width:100%;margin-top:8px">+ Adicionar categoria</button>
+    <div class="modal-actions">
+      <button id="catClose">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="editTaskModal">
+  <div class="modal">
+    <h2>Editar tarefa</h2>
+    <div class="modal-row">
+      <label>Descrição</label>
+      <input type="text" id="editTaskText">
+    </div>
+    <div class="modal-row">
+      <label>Data</label>
+      <input type="date" id="editTaskDate">
+    </div>
+    <div class="modal-row">
+      <label>Categoria</label>
+      <div id="editTaskCategories" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+    </div>
+    <div class="modal-row">
+      <label>Fotos</label>
+      <div id="editTaskPhotos" class="edit-task-photos"></div>
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <input type="file" id="editPhotoCamera" accept="image/*" capture="environment" style="display:none">
+        <input type="file" id="editPhotoGallery" accept="image/*" multiple style="display:none">
+        <button class="secondary" id="editAddCamera" type="button">📷 Câmera</button>
+        <button class="secondary" id="editAddGallery" type="button">🖼 Galeria</button>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="secondary" id="editTaskCancel">Cancelar</button>
+      <button id="editTaskSave">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="importModal">
+  <div class="modal" style="max-width:520px">
+    <h2>Importar tarefas do Excel</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">
+      Selecione qual coluna contém a <strong>data</strong> e qual contém a <strong>tarefa</strong>.
+    </p>
+    <div class="modal-row">
+      <label>Planilha</label>
+      <select id="importSheet" style="width:100%"></select>
+    </div>
+    <div class="modal-row">
+      <label>Coluna da Data</label>
+      <select id="importDateCol" style="width:100%"></select>
+    </div>
+    <div class="modal-row">
+      <label>Coluna da Tarefa</label>
+      <select id="importTaskCol" style="width:100%"></select>
+    </div>
+    <div class="modal-row">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="importSkipHeader" checked style="width:auto;margin:0">
+        <span>A primeira linha é o cabeçalho (ignorar)</span>
+      </label>
+    </div>
+    <div id="importPreview" style="font-size:12px;color:var(--text-muted);margin-top:12px;max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:8px;background:#f9fafb"></div>
+    <div class="modal-actions">
+      <button class="secondary" id="importCancel">Cancelar</button>
+      <button id="importConfirm">Importar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="pdfModal">
+  <div class="modal">
+    <h2>Exportar PDF</h2>
+    <div class="modal-row">
+      <label>Período</label>
+      <select id="pdfRange" style="width:100%">
+        <option value="all">Todo o histórico</option>
+        <option value="range">Intervalo de datas</option>
+      </select>
+    </div>
+    <div class="modal-row" id="pdfFromRow" style="display:none">
+      <label>Data inicial</label>
+      <input type="date" id="pdfFrom">
+    </div>
+    <div class="modal-row" id="pdfToRow" style="display:none">
+      <label>Data final</label>
+      <input type="date" id="pdfTo">
+    </div>
+    <div class="modal-actions">
+      <button class="secondary" id="pdfCancel">Cancelar</button>
+      <button id="pdfConfirm">Gerar PDF</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const STORAGE_KEY = 'tarefas_realizadas_v1';
+  const HISTORY_KEY = 'tarefas_historico_v1';
+  const CATEGORIES_KEY = 'tarefas_categorias_v1';
+  const SELECTED_CAT_KEY = 'tarefas_cat_selecionada_v1';
+
+  const DEFAULT_CATEGORIES = [
+    { id: 'cat-1', name: 'Geral', color: '#6b7280', colorText: false },
+    { id: 'cat-2', name: 'Reunião', color: '#2563eb', colorText: false },
+    { id: 'cat-3', name: 'Desenvolvimento', color: '#059669', colorText: false },
+    { id: 'cat-4', name: 'Pessoal', color: '#f59e0b', colorText: false },
+    { id: 'cat-5', name: 'Urgente', color: '#dc2626', colorText: true }
+  ];
+
+  // ====== SEED DATA (importado da planilha Excel original) ======
+  const SEED_VERSION = 'v1-2026-05-16';
+  const SEED_TASKS = [{"date": "2026-03-16", "text": "Cozinhei lentilha na noite anterior."}, {"date": "2026-03-16", "text": "Fui na padaria."}, {"date": "2026-03-16", "text": "Fiz o café da manhã do Heitor."}, {"date": "2026-03-16", "text": "Organizei sua lancheira."}, {"date": "2026-03-16", "text": "Busquei o Heitor na escola."}, {"date": "2026-03-16", "text": "Fiz açaí para o Heitor e Marina"}, {"date": "2026-03-17", "text": "Fui na padaria"}, {"date": "2026-03-17", "text": "Lavei a louça"}, {"date": "2026-03-17", "text": "Fiz arroz e bife e arrumei o almoço e o lanche do Heitor para a escola"}, {"date": "2026-03-17", "text": "Levei o Heitor na escola"}, {"date": "2026-03-17", "text": "Tirei o lixo de casa"}, {"date": "2026-03-17", "text": "Heitor com febre. Mediquei e fui almoçar com ele"}, {"date": "2026-03-17", "text": "Levei e busquei o Heitor no kumon"}, {"date": "2026-03-17", "text": "Heitor adoeceu, fui na farmácia, comprei remédios"}, {"date": "2026-03-17", "text": "Fiz jantar: uma sopa de lentilha"}, {"date": "2026-03-17", "text": "Lavei louça novamente"}, {"date": "2026-03-17", "text": "Comprei e busquei o hormônio do Heitor"}, {"date": "2026-03-18", "text": "Fui na padaria"}, {"date": "2026-03-18", "text": "Fiz o café da manhã do Heitor"}, {"date": "2026-03-18", "text": "Preparei o almoço e a lancheira da escola"}, {"date": "2026-03-18", "text": "Levei ele na escola"}, {"date": "2026-03-21", "text": "Fui na padaria"}, {"date": "2026-03-21", "text": "Preparei o café da manhã"}, {"date": "2026-03-21", "text": "Lavei louça"}, {"date": "2026-03-21", "text": "Tirei o lixo de casa"}, {"date": "2026-03-21", "text": "Levei a Marina para fazer prova"}, {"date": "2026-03-21", "text": "Fui na academia com o Heitor"}, {"date": "2026-03-21", "text": "Busquei a Marina"}, {"date": "2026-03-22", "text": "Fui na padaria"}, {"date": "2026-03-22", "text": "Preparei o café da manhã"}, {"date": "2026-03-22", "text": "Levei o Heitor no Aniversário"}, {"date": "2026-03-22", "text": "Fui no supermercado"}, {"date": "2026-03-22", "text": "Fiz almoço"}, {"date": "2026-03-22", "text": "Lavei louça e arrumei a cozinha"}, {"date": "2026-03-22", "text": "Busquei o Heitor"}, {"date": "2026-03-22", "text": "Estudei matemática com o Heitor"}, {"date": "2026-03-23", "text": "Fui na padaria"}, {"date": "2026-03-23", "text": "Preparei o café da manhã"}, {"date": "2026-03-23", "text": "Levei ele na escola"}, {"date": "2026-03-23", "text": "Comprei refeições congeladas"}, {"date": "2026-03-23", "text": "Busquei o Heitor na escola"}, {"date": "2026-03-24", "text": "Preparei o café da manhã do Heitor"}, {"date": "2026-03-24", "text": "Ajudei no lanche da escola"}, {"date": "2026-03-24", "text": "Levei ele na escola"}, {"date": "2026-03-24", "text": "Busquei ele no almoço e levei ele para almoçar"}, {"date": "2026-03-24", "text": "Busquei na escola e levei ao kumon"}, {"date": "2026-03-24", "text": "Levei ele no futebol e depois para a casa"}, {"date": "2026-03-25", "text": "Fui na padaria"}, {"date": "2026-03-25", "text": "Preparei o café da manhã do Heitor"}, {"date": "2026-03-25", "text": "Ajudei no lanche da escola"}, {"date": "2026-03-25", "text": "Preparei o almoço da escola"}, {"date": "2026-03-25", "text": "Levei o Heitor na escola"}, {"date": "2026-03-27", "text": "Fui na padaria"}, {"date": "2026-03-27", "text": "Preparei o café da manhã do Heitor e da Marina"}, {"date": "2026-03-27", "text": "Ajudei no lanche da escola"}, {"date": "2026-03-27", "text": "Preparei o almoço da escola"}, {"date": "2026-03-27", "text": "Levei o Heitor e a Marina na escola"}, {"date": "2026-03-27", "text": "Busquei o Heitor na escola"}, {"date": "2026-03-27", "text": "Levei o Heitor no Torneio de Tenis"}, {"date": "2026-03-27", "text": "Dei o Jantar, dormimos juntos"}, {"date": "2026-03-28", "text": "Fomos tomar café da manha na Padaria (Eu e Heitor)"}, {"date": "2026-03-28", "text": "Levei ele no torneio de Futebol"}, {"date": "2026-03-28", "text": "Almoçamos juntos com a família do Leão"}, {"date": "2026-03-28", "text": "Fui no mercado"}, {"date": "2026-03-28", "text": "Estudei ciências com ele"}, {"date": "2026-03-30", "text": "Padaria"}, {"date": "2026-03-30", "text": "Cafe da manha e lanche da escola"}, {"date": "2026-03-30", "text": "Almoço para escola"}, {"date": "2026-03-30", "text": "Levei na escola"}, {"date": "2026-03-30", "text": "Busquei na escola"}, {"date": "2026-03-30", "text": "Estudei ciências com ele"}, {"date": "2026-03-31", "text": "Padaria"}, {"date": "2026-03-31", "text": "Cafe da manha e lanche da escola"}, {"date": "2026-03-31", "text": "Levei na escola"}, {"date": "2026-03-31", "text": "Busquei na escola, levei ao kumon e depois ao futebol"}, {"date": "2026-04-01", "text": "Padaria"}, {"date": "2026-04-01", "text": "Cafe da manha e lanche da escola"}, {"date": "2026-04-01", "text": "Levei na escola"}, {"date": "2026-04-02", "text": "Comprei roupa na Decathlon"}, {"date": "2026-04-02", "text": "Fiz compra no supermercado"}, {"date": "2026-04-04", "text": "FERIADO PÁSCOA, FUI PARA JUNDIAÍ 04/04, voltei 08/04 quase meia noite"}, {"date": "2026-04-09", "text": "FERIADO PÁSCOA, FUI PARA JUNDIAÍ 04/04, voltei 08/04 quase meia noite"}, {"date": "2026-04-09", "text": "Levei o Heitor na escola"}, {"date": "2026-04-09", "text": "Busquei no Futebol"}, {"date": "2026-04-09", "text": "Fiz o jantar do Heitor e da Marina"}, {"date": "2026-04-09", "text": "Lavei louça e tirei o lixo"}, {"date": "2026-04-10", "text": "Padaria"}, {"date": "2026-04-10", "text": "Café da manhã do Heitor,"}, {"date": "2026-04-10", "text": "Lanche da escola do Heitor"}, {"date": "2026-04-10", "text": "Levei Heitor e Marina na escola"}, {"date": "2026-04-10", "text": "Comprei jantar para o Heitor (Marina não quis)"}, {"date": "2026-04-10", "text": "Lavei louça e tirei o lixo"}, {"date": "2026-04-11", "text": "Mercado"}, {"date": "2026-04-11", "text": "Café da manhã do Heitor e da Marina"}, {"date": "2026-04-11", "text": "Levei a Marina na prova"}, {"date": "2026-04-11", "text": "Estudei Geografia com o Heitor"}, {"date": "2026-04-11", "text": "Lavei louça, fiz o almoço"}, {"date": "2026-04-11", "text": "Lavei louça pós almoço, limpei o fogão, tirei o lixo"}, {"date": "2026-04-11", "text": "Andei de bicicleta com o Heitor"}, {"date": "2026-04-11", "text": "Estudei novamente com o Heitor"}, {"date": "2026-04-11", "text": "Andamos de bicicleta"}, {"date": "2026-04-11", "text": "Fiz o jantar"}, {"date": "2026-04-12", "text": "Tomei café com o Heitor na padaria"}, {"date": "2026-04-12", "text": "Supermercado"}, {"date": "2026-04-12", "text": "Fiz almoço"}, {"date": "2026-04-12", "text": "Estudei Geografia com o Heitor"}, {"date": "2026-04-12", "text": "Andamos de bike"}, {"date": "2026-04-13", "text": "Padaria"}, {"date": "2026-04-13", "text": "Café da manhã e lanche da escola do Heitor"}, {"date": "2026-04-13", "text": "Levei eles na escola"}, {"date": "2026-04-13", "text": "Estudei Geografia com o Heitor"}, {"date": "2026-04-14", "text": "Padaria"}, {"date": "2026-04-14", "text": "Café da manhã e lanche da escola do Heitor"}, {"date": "2026-04-14", "text": "Levei o Heitor na escola"}, {"date": "2026-04-14", "text": "Levei o material do Kumon"}, {"date": "2026-04-14", "text": "Pedi sushi para o Heitor"}, {"date": "2026-04-15", "text": "Padaria"}, {"date": "2026-04-15", "text": "Café da manhã e lanche da escola do Heitor"}, {"date": "2026-04-15", "text": "Levei o Heitor na escola"}, {"date": "2026-04-17", "text": "Cheguei em casa 21:30, guardei e enxuguei uma pilha de louça acumulada de vários dias que não cabiam no porta louça"}, {"date": "2026-04-17", "text": "Tirei o lixo que estava com mal cheiro"}, {"date": "2026-04-17", "text": "Lavei frigideiras e o fogão que estavam imundos"}, {"date": "2026-04-18", "text": "Padaria"}, {"date": "2026-04-18", "text": "Café da manhã do Heitor e da Marina"}, {"date": "2026-04-18", "text": "Levei a Marina para fazer prova"}, {"date": "2026-04-18", "text": "Fiz almoço"}, {"date": "2026-04-18", "text": "Lavei louça e tirei o lixo"}, {"date": "2026-04-18", "text": "Levei o Heitor para o torneio de futebol"}, {"date": "2026-04-18", "text": "Levei o Heitor para o Aniversário"}, {"date": "2026-04-18", "text": "Busquei o Heitor no Aniversário"}, {"date": "2026-04-18", "text": "Dei Jantar para o Heitor e para a Marina"}, {"date": "2026-04-18", "text": "Lavei louça de novo."}, {"date": "2026-04-19", "text": "Padaria"}, {"date": "2026-04-19", "text": "Café da manhã do Heitor e da Marina"}, {"date": "2026-04-19", "text": "Levei o Heitor para almoçar"}, {"date": "2026-04-19", "text": "Dei almoço para a secretária"}, {"date": "2026-04-19", "text": "Aluguei um carro e ensinei a Marina a dirigir"}, {"date": "2026-04-20", "text": "Fui dirigir com a Marina novamente"}, {"date": "2026-04-20", "text": "(Heitor passando 2 dias na casa do colega)"}, {"date": "2026-04-24", "text": "Supermercado"}, {"date": "2026-04-26", "text": "Busquei a Marina e a Fernanda na festa de madrugada"}, {"date": "2026-04-27", "text": "Padaria"}, {"date": "2026-04-27", "text": "Café da manhã do Heitor e da Marina"}, {"date": "2026-04-27", "text": "Comprar as coisas do Bud com a Marina"}, {"date": "2026-04-27", "text": "Abri a CC do Heitor"}, {"date": "2026-04-28", "text": "Padaria"}, {"date": "2026-04-28", "text": "Café da manhã do Heitor e da Marina"}, {"date": "2026-04-28", "text": "Levei o Heitor na escola"}, {"date": "2026-04-28", "text": "Levei a Marina na Psicologa"}, {"date": "2026-04-28", "text": "Arrumei o celular do Heitor"}, {"date": "2026-04-28", "text": "Busquei e Levei o Heitor no Kumon"}, {"date": "2026-04-28", "text": "Levei o Heitor no Futebol"}, {"date": "2026-04-28", "text": "Levei o Heitor na Psicologa"}, {"date": "2026-04-28", "text": "Dei jantar para o Heitor e o Levei para casa"}];
+  const SEED_HISTORY = {"Cozinhei lentilha na noite anterior.": 1, "Fui na padaria.": 1, "Fiz o café da manhã do Heitor.": 1, "Organizei sua lancheira.": 1, "Busquei o Heitor na escola.": 1, "Fiz açaí para o Heitor e Marina": 1, "Fui na padaria": 7, "Lavei a louça": 1, "Fiz arroz e bife e arrumei o almoço e o lanche do Heitor para a escola": 1, "Levei o Heitor na escola": 6, "Tirei o lixo de casa": 2, "Heitor com febre. Mediquei e fui almoçar com ele": 1, "Levei e busquei o Heitor no kumon": 1, "Heitor adoeceu, fui na farmácia, comprei remédios": 1, "Fiz jantar: uma sopa de lentilha": 1, "Lavei louça novamente": 1, "Comprei e busquei o hormônio do Heitor": 1, "Fiz o café da manhã do Heitor": 1, "Preparei o almoço e a lancheira da escola": 1, "Levei ele na escola": 3, "Preparei o café da manhã": 3, "Lavei louça": 1, "Levei a Marina para fazer prova": 2, "Fui na academia com o Heitor": 1, "Busquei a Marina": 1, "Levei o Heitor no Aniversário": 1, "Fui no supermercado": 1, "Fiz almoço": 3, "Lavei louça e arrumei a cozinha": 1, "Busquei o Heitor": 1, "Estudei matemática com o Heitor": 1, "Comprei refeições congeladas": 1, "Busquei o Heitor na escola": 2, "Preparei o café da manhã do Heitor": 2, "Ajudei no lanche da escola": 3, "Busquei ele no almoço e levei ele para almoçar": 1, "Busquei na escola e levei ao kumon": 1, "Levei ele no futebol e depois para a casa": 1, "Preparei o almoço da escola": 2, "Preparei o café da manhã do Heitor e da Marina": 1, "Levei o Heitor e a Marina na escola": 1, "Levei o Heitor no Torneio de Tenis": 1, "Dei o Jantar, dormimos juntos": 1, "Fomos tomar café da manha na Padaria (Eu e Heitor)": 1, "Levei ele no torneio de Futebol": 1, "Almoçamos juntos com a família do Leão": 1, "Fui no mercado": 1, "Estudei ciências com ele": 2, "Padaria": 11, "Cafe da manha e lanche da escola": 3, "Almoço para escola": 1, "Levei na escola": 3, "Busquei na escola": 1, "Busquei na escola, levei ao kumon e depois ao futebol": 1, "Comprei roupa na Decathlon": 1, "Fiz compra no supermercado": 1, "FERIADO PÁSCOA, FUI PARA JUNDIAÍ 04/04, voltei 08/04 quase meia noite": 2, "Busquei no Futebol": 1, "Fiz o jantar do Heitor e da Marina": 1, "Lavei louça e tirei o lixo": 3, "Café da manhã do Heitor,": 1, "Lanche da escola do Heitor": 1, "Levei Heitor e Marina na escola": 1, "Comprei jantar para o Heitor (Marina não quis)": 1, "Mercado": 1, "Café da manhã do Heitor e da Marina": 5, "Levei a Marina na prova": 1, "Estudei Geografia com o Heitor": 3, "Lavei louça, fiz o almoço": 1, "Lavei louça pós almoço, limpei o fogão, tirei o lixo": 1, "Andei de bicicleta com o Heitor": 1, "Estudei novamente com o Heitor": 1, "Andamos de bicicleta": 1, "Fiz o jantar": 1, "Tomei café com o Heitor na padaria": 1, "Supermercado": 2, "Andamos de bike": 1, "Café da manhã e lanche da escola do Heitor": 3, "Levei eles na escola": 1, "Levei o material do Kumon": 1, "Pedi sushi para o Heitor": 1, "Cheguei em casa 21:30, guardei e enxuguei uma pilha de louça acumulada de vários dias que não cabiam no porta louça": 1, "Tirei o lixo que estava com mal cheiro": 1, "Lavei frigideiras e o fogão que estavam imundos": 1, "Levei o Heitor para o torneio de futebol": 1, "Levei o Heitor para o Aniversário": 1, "Busquei o Heitor no Aniversário": 1, "Dei Jantar para o Heitor e para a Marina": 1, "Lavei louça de novo.": 1, "Levei o Heitor para almoçar": 1, "Dei almoço para a secretária": 1, "Aluguei um carro e ensinei a Marina a dirigir": 1, "Fui dirigir com a Marina novamente": 1, "(Heitor passando 2 dias na casa do colega)": 1, "Busquei a Marina e a Fernanda na festa de madrugada": 1, "Comprar as coisas do Bud com a Marina": 1, "Abri a CC do Heitor": 1, "Levei a Marina na Psicologa": 1, "Arrumei o celular do Heitor": 1, "Busquei e Levei o Heitor no Kumon": 1, "Levei o Heitor no Futebol": 1, "Levei o Heitor na Psicologa": 1, "Dei jantar para o Heitor e o Levei para casa": 1};
+
+  function applySeedIfNeeded() {
+    const SEED_KEY = 'tarefas_seed_loaded';
+    if (localStorage.getItem(SEED_KEY) === SEED_VERSION) return;
+    // Get existing storage
+    const existingTasks = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    const existingHistory = JSON.parse(localStorage.getItem(HISTORY_KEY) || '{}');
+    // Build set of existing (date, text) to avoid duplicates
+    const seen = new Set(existingTasks.map(t => t.date + '|' + (t.text || '').trim()));
+    let added = 0;
+    SEED_TASKS.forEach((t, i) => {
+      const k = t.date + '|' + t.text.trim();
+      if (seen.has(k)) return;
+      seen.add(k);
+      existingTasks.push({
+        id: Date.now() + i + Math.random(),
+        date: t.date,
+        text: t.text,
+        categoryId: null
+      });
+      added++;
+    });
+    Object.entries(SEED_HISTORY).forEach(([text, count]) => {
+      existingHistory[text] = (existingHistory[text] || 0) + count;
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(existingTasks));
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(existingHistory));
+    localStorage.setItem(SEED_KEY, SEED_VERSION);
+    if (added > 0) {
+      console.log(`Importadas ${added} tarefas da planilha original.`);
+    }
+  }
+
+  applySeedIfNeeded();
+
+  let tasks = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  let history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '{}');
+  let categories = JSON.parse(localStorage.getItem(CATEGORIES_KEY) || 'null') || DEFAULT_CATEGORIES;
+  let selectedCategoryId = localStorage.getItem(SELECTED_CAT_KEY) || categories[0]?.id || null;
+
+  const taskDate = document.getElementById('taskDate');
+  const taskInput = document.getElementById('taskInput');
+  const addBtn = document.getElementById('addBtn');
+  const autocomplete = document.getElementById('autocomplete');
+  const report = document.getElementById('report');
+  const filterFrom = document.getElementById('filterFrom');
+  const filterTo = document.getElementById('filterTo');
+  const clearFilter = document.getElementById('clearFilter');
+  const pdfBtn = document.getElementById('pdfBtn');
+  const clearAllBtn = document.getElementById('clearAllBtn');
+  const pdfModal = document.getElementById('pdfModal');
+  const pdfRange = document.getElementById('pdfRange');
+  const pdfFromRow = document.getElementById('pdfFromRow');
+  const pdfToRow = document.getElementById('pdfToRow');
+  const pdfFrom = document.getElementById('pdfFrom');
+  const pdfTo = document.getElementById('pdfTo');
+  const pdfCancel = document.getElementById('pdfCancel');
+  const pdfConfirm = document.getElementById('pdfConfirm');
+
+  // Init date to today
+  function todayISO() {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0, 10);
+  }
+  taskDate.value = todayISO();
+
+  function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    localStorage.setItem(CATEGORIES_KEY, JSON.stringify(categories));
+    if (selectedCategoryId) localStorage.setItem(SELECTED_CAT_KEY, selectedCategoryId);
+  }
+
+  function getCategory(id) {
+    return categories.find(c => c.id === id) || null;
+  }
+
+  function formatDateBR(iso) {
+    const [y, m, d] = iso.split('-');
+    const date = new Date(+y, +m - 1, +d);
+    const weekdays = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+    const months = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    return `${weekdays[date.getDay()]}, ${+d} de ${months[+m-1]} de ${y}`;
+  }
+
+  function addTask(date, text) {
+    text = text.trim();
+    if (!text) return;
+    const photos = pendingPhotos.slice();
+    pendingPhotos = [];
+    renderPendingPhotos();
+    tasks.push({ id: Date.now() + Math.random(), date, text, categoryId: selectedCategoryId, photos });
+    history[text] = (history[text] || 0) + 1;
+    save();
+    render();
+  }
+
+  function deleteTask(id) {
+    const task = tasks.find(t => t.id === id);
+    if (task && Array.isArray(task.photos)) {
+      task.photos.forEach(p => deletePhotoFromStorage(p));
+    }
+    tasks = tasks.filter(t => t.id !== id);
+    save();
+    render();
+  }
+
+  let editingTaskId = null;
+  let editingPhotos = []; // working copy of task.photos in the modal
+
+  function editTask(id) {
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+    editingTaskId = id;
+    editingPhotos = Array.isArray(task.photos) ? task.photos.slice() : [];
+    document.getElementById('editTaskText').value = task.text;
+    document.getElementById('editTaskDate').value = task.date;
+    renderEditTaskCategories(task.categoryId);
+    renderEditTaskPhotos();
+    document.getElementById('editTaskModal').classList.add('active');
+  }
+
+  function renderEditTaskPhotos() {
+    const container = document.getElementById('editTaskPhotos');
+    if (editingPhotos.length === 0) {
+      container.innerHTML = '<span style="font-size:12px;color:var(--text-muted)">Nenhuma foto.</span>';
+      return;
+    }
+    container.innerHTML = editingPhotos.map((p, i) => {
+      const url = getPhotoDisplayUrl(p);
+      return `
+        <div class="pending-photo">
+          <img src="${escapeHtml(url)}" alt="Foto">
+          <button class="pending-photo-remove" data-idx="${i}" type="button" title="Remover">×</button>
+        </div>
+      `;
+    }).join('');
+    container.querySelectorAll('.pending-photo-remove').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const idx = parseInt(btn.dataset.idx);
+        const photo = editingPhotos[idx];
+        if (!confirm('Remover esta foto?')) return;
+        await deletePhotoFromStorage(photo);
+        editingPhotos.splice(idx, 1);
+        renderEditTaskPhotos();
+      });
+    });
+  }
+
+  function renderEditTaskCategories(currentCatId) {
+    const container = document.getElementById('editTaskCategories');
+    container.innerHTML = categories.map(c => `
+      <div class="cat-chip ${c.id === currentCatId ? 'active' : ''}" data-cat="${c.id}">
+        <span class="cat-dot" style="background:${c.color}"></span>
+        <span>${escapeHtml(c.name)}</span>
+      </div>
+    `).join('') + `
+      <div class="cat-chip ${!currentCatId ? 'active' : ''}" data-cat="">
+        <span class="cat-dot" style="background:#e5e7eb;border:1px solid #d1d5db"></span>
+        <span>Sem categoria</span>
+      </div>
+    `;
+    container.querySelectorAll('.cat-chip').forEach(el => {
+      el.addEventListener('click', () => {
+        container.querySelectorAll('.cat-chip').forEach(e => e.classList.remove('active'));
+        el.classList.add('active');
+      });
+    });
+  }
+
+  document.getElementById('editTaskCancel').addEventListener('click', () => {
+    document.getElementById('editTaskModal').classList.remove('active');
+    editingTaskId = null;
+  });
+
+  document.getElementById('editTaskSave').addEventListener('click', () => {
+    if (!editingTaskId) return;
+    const task = tasks.find(t => t.id === editingTaskId);
+    if (!task) return;
+    const newText = document.getElementById('editTaskText').value.trim();
+    const newDate = document.getElementById('editTaskDate').value;
+    if (!newText || !newDate) {
+      alert('Preencha a descrição e a data');
+      return;
+    }
+    const activeChip = document.querySelector('#editTaskCategories .cat-chip.active');
+    const newCatId = activeChip ? (activeChip.dataset.cat || null) : task.categoryId;
+    task.text = newText;
+    task.date = newDate;
+    task.categoryId = newCatId;
+    task.photos = editingPhotos.slice();
+    history[newText] = (history[newText] || 0) + 1;
+    save();
+    render();
+    document.getElementById('editTaskModal').classList.remove('active');
+    editingTaskId = null;
+    editingPhotos = [];
+  });
+
+  document.getElementById('editTaskModal').addEventListener('click', e => {
+    if (e.target.id === 'editTaskModal') {
+      document.getElementById('editTaskModal').classList.remove('active');
+      editingTaskId = null;
+    }
+  });
+
+  function getFilteredTasks() {
+    const from = filterFrom.value;
+    const to = filterTo.value;
+    return tasks.filter(t => {
+      if (from && t.date < from) return false;
+      if (to && t.date > to) return false;
+      return true;
+    });
+  }
+
+  function groupByDate(items) {
+    const groups = {};
+    items.forEach(t => {
+      if (!groups[t.date]) groups[t.date] = [];
+      groups[t.date].push(t);
+    });
+    return Object.keys(groups)
+      .sort((a, b) => b.localeCompare(a))
+      .map(date => ({ date, items: groups[date] }));
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  function hexToRgb(hex) {
+    const h = hex.replace('#', '');
+    const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
+    return {
+      r: parseInt(full.substring(0, 2), 16),
+      g: parseInt(full.substring(2, 4), 16),
+      b: parseInt(full.substring(4, 6), 16)
+    };
+  }
+
+  function renderCategoryChips() {
+    const container = document.getElementById('categoryChips');
+    container.innerHTML =
+      '<span class="label">Categoria:</span>' +
+      categories.map(c => `
+        <div class="cat-chip ${c.id === selectedCategoryId ? 'active' : ''}" data-cat="${c.id}">
+          <span class="cat-dot" style="background:${c.color}"></span>
+          <span>${escapeHtml(c.name)}</span>
+        </div>
+      `).join('') +
+      '<button class="cat-manage" id="openCatModal">⚙ Gerenciar</button>';
+
+    container.querySelectorAll('.cat-chip').forEach(el => {
+      el.addEventListener('click', () => {
+        selectedCategoryId = el.dataset.cat;
+        save();
+        renderCategoryChips();
+      });
+    });
+
+    document.getElementById('openCatModal').addEventListener('click', openCategoryModal);
+  }
+
+  function render() {
+    // Stats
+    document.getElementById('statTotal').textContent = tasks.length;
+    const uniqueDays = new Set(tasks.map(t => t.date));
+    document.getElementById('statDays').textContent = uniqueDays.size;
+    const today = todayISO();
+    document.getElementById('statToday').textContent = tasks.filter(t => t.date === today).length;
+
+    renderCategoryChips();
+
+    const filtered = getFilteredTasks();
+    const groups = groupByDate(filtered);
+
+    if (groups.length === 0) {
+      report.innerHTML = `
+        <div class="card empty">
+          <div class="empty-icon">📋</div>
+          <div>Nenhuma tarefa registrada${(filterFrom.value || filterTo.value) ? ' para este período' : ' ainda'}.</div>
+        </div>
+      `;
+      return;
+    }
+
+    report.innerHTML = groups.map(g => `
+      <div class="day-section">
+        <div class="day-header">
+          <div class="day-date">${formatDateBR(g.date)}</div>
+          <div class="day-count">${g.items.length} ${g.items.length === 1 ? 'tarefa' : 'tarefas'}</div>
+        </div>
+        <ul class="task-list">
+          ${g.items.map(t => {
+            const cat = getCategory(t.categoryId);
+            const color = cat ? cat.color : 'transparent';
+            const catLabel = cat ? `<span class="task-cat-label" style="background:${cat.color}20;color:${cat.color}"><span class="cat-dot" style="background:${cat.color}"></span>${escapeHtml(cat.name)}</span>` : '';
+            const textStyle = (cat && cat.colorText) ? `color:${cat.color};font-weight:500` : '';
+            const photos = Array.isArray(t.photos) ? t.photos : [];
+            const photoStrip = photos.length > 0 ? `
+              <div class="task-photos">
+                ${photos.map((p, i) => {
+                  const url = getPhotoDisplayUrl(p);
+                  if (!url) return `<div class="task-photo-thumb" style="background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:10px;color:#9ca3af">…</div>`;
+                  return `<img src="${escapeHtml(url)}" class="task-photo-thumb" onclick="viewPhoto(${t.id}, ${i})" alt="Foto da tarefa">`;
+                }).join('')}
+              </div>
+            ` : '';
+            return `
+              <li class="task-item" style="border-left-color:${color}">
+                <div class="task-text" style="${textStyle}">${catLabel}${escapeHtml(t.text)}${photoStrip}</div>
+                <div class="task-actions">
+                  <button class="icon-btn" onclick="editTask(${t.id})" title="Editar">✏️</button>
+                  <button class="icon-btn delete" onclick="deleteTask(${t.id})" title="Excluir">🗑️</button>
+                </div>
+              </li>
+            `;
+          }).join('')}
+        </ul>
+      </div>
+    `).join('');
+  }
+
+  // Autocomplete
+  let highlightedIndex = -1;
+  let currentSuggestions = [];
+
+  function showSuggestions(query) {
+    query = query.trim().toLowerCase();
+    if (!query) {
+      autocomplete.classList.remove('active');
+      return;
+    }
+    const entries = Object.entries(history)
+      .filter(([text]) => text.toLowerCase().includes(query))
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8);
+
+    if (entries.length === 0) {
+      autocomplete.classList.remove('active');
+      return;
+    }
+
+    currentSuggestions = entries;
+    highlightedIndex = -1;
+    autocomplete.innerHTML = entries.map(([text, count], i) => `
+      <div class="autocomplete-item" data-index="${i}" data-text="${escapeHtml(text)}">
+        <span>${escapeHtml(text)}</span>
+        <span class="count">${count}×</span>
+      </div>
+    `).join('');
+    autocomplete.classList.add('active');
+
+    autocomplete.querySelectorAll('.autocomplete-item').forEach(item => {
+      item.addEventListener('mousedown', e => {
+        e.preventDefault();
+        taskInput.value = item.dataset.text;
+        autocomplete.classList.remove('active');
+        taskInput.focus();
+      });
+    });
+  }
+
+  function updateHighlight() {
+    autocomplete.querySelectorAll('.autocomplete-item').forEach((el, i) => {
+      el.classList.toggle('highlighted', i === highlightedIndex);
+    });
+  }
+
+  taskInput.addEventListener('input', e => showSuggestions(e.target.value));
+
+  taskInput.addEventListener('keydown', e => {
+    const items = autocomplete.querySelectorAll('.autocomplete-item');
+    if (autocomplete.classList.contains('active') && items.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        highlightedIndex = (highlightedIndex + 1) % items.length;
+        updateHighlight();
+        return;
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        highlightedIndex = (highlightedIndex - 1 + items.length) % items.length;
+        updateHighlight();
+        return;
+      } else if (e.key === 'Tab' && highlightedIndex >= 0) {
+        e.preventDefault();
+        taskInput.value = currentSuggestions[highlightedIndex][0];
+        autocomplete.classList.remove('active');
+        return;
+      } else if (e.key === 'Escape') {
+        autocomplete.classList.remove('active');
+        return;
+      } else if (e.key === 'Enter' && highlightedIndex >= 0) {
+        e.preventDefault();
+        taskInput.value = currentSuggestions[highlightedIndex][0];
+        autocomplete.classList.remove('active');
+        addCurrent();
+        return;
+      }
+    }
+    if (e.key === 'Enter') {
+      addCurrent();
+    }
+  });
+
+  taskInput.addEventListener('blur', () => {
+    setTimeout(() => autocomplete.classList.remove('active'), 200);
+  });
+
+  function addCurrent() {
+    if (!taskDate.value) {
+      alert('Selecione uma data');
+      return;
+    }
+    addTask(taskDate.value, taskInput.value);
+    taskInput.value = '';
+    autocomplete.classList.remove('active');
+    taskInput.focus();
+  }
+
+  addBtn.addEventListener('click', addCurrent);
+
+  // Photo upload buttons (main input)
+  const photoCameraInput = document.getElementById('photoCameraInput');
+  const photoGalleryInput = document.getElementById('photoGalleryInput');
+  document.getElementById('btnCamera').addEventListener('click', () => photoCameraInput.click());
+  document.getElementById('btnGallery').addEventListener('click', () => photoGalleryInput.click());
+  photoCameraInput.addEventListener('change', e => { handlePhotoFiles(e.target.files); e.target.value = ''; });
+  photoGalleryInput.addEventListener('change', e => { handlePhotoFiles(e.target.files); e.target.value = ''; });
+
+  // Photo upload buttons (edit modal)
+  const editPhotoCamera = document.getElementById('editPhotoCamera');
+  const editPhotoGallery = document.getElementById('editPhotoGallery');
+  document.getElementById('editAddCamera').addEventListener('click', () => editPhotoCamera.click());
+  document.getElementById('editAddGallery').addEventListener('click', () => editPhotoGallery.click());
+
+  async function handleEditPhotoFiles(files) {
+    if (!firestoreDb) {
+      alert('Para usar fotos, primeiro conecte a sincronização (botão Sync no topo).');
+      return;
+    }
+    for (const f of Array.from(files || [])) {
+      try {
+        const photoId = await uploadPhoto(f);
+        editingPhotos.push(photoId);
+        renderEditTaskPhotos();
+      } catch (e) {
+        alert('Falha ao enviar foto: ' + (e.message || e));
+      }
+    }
+  }
+  editPhotoCamera.addEventListener('change', e => { handleEditPhotoFiles(e.target.files); e.target.value = ''; });
+  editPhotoGallery.addEventListener('change', e => { handleEditPhotoFiles(e.target.files); e.target.value = ''; });
+
+  // Close photo viewer on background click or ESC
+  document.getElementById('photoViewer').addEventListener('click', e => {
+    if (e.target.id === 'photoViewer') closePhotoViewer();
+  });
+  document.addEventListener('keydown', e => {
+    if (document.getElementById('photoViewer').classList.contains('active')) {
+      if (e.key === 'Escape') closePhotoViewer();
+      else if (e.key === 'ArrowLeft') photoViewerNav(-1);
+      else if (e.key === 'ArrowRight') photoViewerNav(1);
+    }
+  });
+
+  filterFrom.addEventListener('change', render);
+  filterTo.addEventListener('change', render);
+  clearFilter.addEventListener('click', () => {
+    filterFrom.value = '';
+    filterTo.value = '';
+    render();
+  });
+
+  clearAllBtn.addEventListener('click', () => {
+    if (confirm('Tem certeza que deseja apagar TODAS as tarefas? Esta ação não pode ser desfeita.')) {
+      if (confirm('Confirma novamente? Todo o histórico será perdido.')) {
+        tasks = [];
+        save();
+        render();
+      }
+    }
+  });
+
+  // PDF
+  pdfBtn.addEventListener('click', () => {
+    pdfRange.value = 'all';
+    pdfFromRow.style.display = 'none';
+    pdfToRow.style.display = 'none';
+    pdfModal.classList.add('active');
+  });
+
+  pdfRange.addEventListener('change', () => {
+    const isRange = pdfRange.value === 'range';
+    pdfFromRow.style.display = isRange ? 'block' : 'none';
+    pdfToRow.style.display = isRange ? 'block' : 'none';
+  });
+
+  pdfCancel.addEventListener('click', () => pdfModal.classList.remove('active'));
+  pdfModal.addEventListener('click', e => {
+    if (e.target === pdfModal) pdfModal.classList.remove('active');
+  });
+
+  pdfConfirm.addEventListener('click', generatePDF);
+
+  function generatePDF() {
+    let items = [...tasks];
+    let periodLabel = 'Todo o histórico';
+    if (pdfRange.value === 'range') {
+      const from = pdfFrom.value;
+      const to = pdfTo.value;
+      if (!from || !to) {
+        alert('Selecione a data inicial e final');
+        return;
+      }
+      items = items.filter(t => t.date >= from && t.date <= to);
+      periodLabel = `${from.split('-').reverse().join('/')} a ${to.split('-').reverse().join('/')}`;
+    }
+
+    if (items.length === 0) {
+      alert('Nenhuma tarefa neste período');
+      return;
+    }
+
+    const groups = groupByDate(items);
+    const allDates = items.map(t => t.date).sort();
+    const firstDate = allDates[0];
+    const lastDate = allDates[allDates.length - 1];
+    const uniqueDays = new Set(allDates).size;
+
+    // Used categories for legend
+    const usedCatIds = new Set();
+    items.forEach(t => { if (t.categoryId) usedCatIds.add(t.categoryId); });
+    const usedCats = categories.filter(c => usedCatIds.has(c.id));
+
+    const generatedOn = new Date().toLocaleString('pt-BR', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+
+    // Build HTML document for printing
+    const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Relatório de Tarefas — ${escapeHtml(periodLabel)}</title>
+<style>
+  @page {
+    size: A4;
+    margin: 18mm 16mm 22mm 16mm;
+    @bottom-center {
+      content: "Página " counter(page) " de " counter(pages);
+      font-family: 'Inter', -apple-system, sans-serif;
+      font-size: 9pt;
+      color: #9ca3af;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    color: #111827;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    font-size: 10.5pt;
+    background: white;
+  }
+  body { padding: 0; background: white; }
+
+  /* Cover header */
+  .cover {
+    border-bottom: 2px solid #111827;
+    padding-bottom: 14pt;
+    margin-bottom: 20pt;
+  }
+  .cover h1 {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 26pt;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: #111827;
+    margin-bottom: 6pt;
+  }
+  .cover .subtitle {
+    font-size: 11pt;
+    color: #6b7280;
+    font-style: italic;
+  }
+  .meta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12pt;
+    margin-top: 14pt;
+    padding-top: 12pt;
+    border-top: 1px solid #e5e7eb;
+  }
+  .meta-item .label {
+    font-size: 8pt;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #9ca3af;
+    margin-bottom: 2pt;
+    font-weight: 600;
+  }
+  .meta-item .value {
+    font-size: 11pt;
+    color: #111827;
+    font-weight: 500;
+  }
+
+  /* Day block */
+  .day {
+    margin-bottom: 10pt;
+    page-break-inside: avoid;
+    background: white;
+  }
+  .day-header {
+    text-align: left;
+    padding-bottom: 3pt;
+    margin-bottom: 4pt;
+    border-bottom: 1px solid #d1d5db;
+    background: white;
+  }
+  .day-title {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 13pt;
+    font-weight: 600;
+    color: #111827;
+    letter-spacing: -0.01em;
+    display: inline;
+  }
+  .day-title .weekday {
+    color: #6b7280;
+    font-weight: 400;
+    font-style: italic;
+    margin-right: 4pt;
+  }
+  .day-count {
+    font-size: 9pt;
+    color: #6b7280;
+    font-variant-numeric: tabular-nums;
+    margin-left: 8pt;
+    font-style: italic;
+  }
+
+  .tasks-prose {
+    font-size: 10.5pt;
+    color: #1f2937;
+    text-align: justify;
+    line-height: 1.55;
+    margin: 0;
+  }
+  .task-sentence {
+    display: inline;
+  }
+  .task-sentence + .task-sentence::before {
+    content: " ";
+  }
+  .task-sentence .cat-marker {
+    display: inline-block;
+    width: 5pt;
+    height: 5pt;
+    border-radius: 50%;
+    background: var(--cat-color, transparent);
+    vertical-align: 1pt;
+    margin-right: 3pt;
+  }
+
+  /* Legend */
+  .legend {
+    margin-top: 24pt;
+    padding-top: 12pt;
+    border-top: 1px solid #e5e7eb;
+    page-break-inside: avoid;
+  }
+  .legend h2 {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 11pt;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 8pt;
+  }
+  .legend-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10pt;
+  }
+  .legend-item {
+    display: inline-flex;
+    align-items: center;
+    font-size: 9.5pt;
+    color: #374151;
+  }
+  .legend-dot {
+    width: 8pt;
+    height: 8pt;
+    border-radius: 50%;
+    margin-right: 5pt;
+    display: inline-block;
+  }
+
+  /* Print tweaks */
+  @media print {
+    .day { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <h1>Relatório de Tarefas Realizadas</h1>
+  <div class="subtitle">${escapeHtml(periodLabel)}</div>
+  <div class="meta-grid">
+    <div class="meta-item">
+      <div class="label">Tarefas</div>
+      <div class="value">${items.length}</div>
+    </div>
+    <div class="meta-item">
+      <div class="label">Dias registrados</div>
+      <div class="value">${uniqueDays}</div>
+    </div>
+    <div class="meta-item">
+      <div class="label">Gerado em</div>
+      <div class="value">${escapeHtml(generatedOn)}</div>
+    </div>
+  </div>
+</section>
+
+${groups.map(g => `
+  <section class="day">
+    <div class="day-header">
+      <span class="day-title">${formatDateHeader(g.date)}</span><span class="day-count">${g.items.length} ${g.items.length === 1 ? 'tarefa' : 'tarefas'}</span>
+    </div>
+    <p class="tasks-prose">${g.items.map(t => {
+      const cat = getCategory(t.categoryId);
+      const marker = cat ? `<span class="cat-marker" style="--cat-color:${cat.color}"></span>` : '';
+      // Ensure each task ends with a period
+      let text = escapeHtml(t.text.trim());
+      if (!/[.!?]$/.test(text)) text += '.';
+      return `<span class="task-sentence">${marker}${text}</span>`;
+    }).join(' ')}</p>
+  </section>
+`).join('')}
+
+${usedCats.length > 0 ? `
+  <section class="legend">
+    <h2>Legenda de categorias</h2>
+    <div class="legend-items">
+      ${usedCats.map(c => `
+        <span class="legend-item">
+          <span class="legend-dot" style="background:${c.color}"></span>
+          ${escapeHtml(c.name)}
+        </span>
+      `).join('')}
+    </div>
+  </section>
+` : ''}
+
+<scr` + `ipt>
+  window.addEventListener('load', () => {
+    setTimeout(() => { window.print(); }, 250);
+  });
+  window.addEventListener('afterprint', () => {
+    setTimeout(() => window.close(), 300);
+  });
+</scr` + `ipt>
+</body>
+</html>`;
+
+    // Extract only the <body>...</body> contents (we'll inject inline)
+    const bodyMatch = html.match(/<body>([\s\S]*)<\/body>/);
+    const bodyContent = bodyMatch ? bodyMatch[1] : html;
+    // Extract the <style> block
+    const styleMatch = html.match(/<style>([\s\S]*?)<\/style>/);
+    const styleContent = styleMatch ? styleMatch[1] : '';
+
+    // Remove auto-print script from bodyContent (we control printing here)
+    const cleanBody = bodyContent.replace(/<scr[\s\S]*?<\/scr[\s\S]*?>/gi, '');
+
+    // Show inline preview overlay
+    const overlay = document.getElementById('pdfPreview');
+    document.getElementById('pdfPreviewStyles').textContent = styleContent;
+    document.getElementById('pdfPreviewBody').innerHTML = cleanBody;
+    overlay.classList.add('active');
+    document.body.classList.add('printing-mode');
+
+    pdfModal.classList.remove('active');
+  }
+
+  function closePdfPreview() {
+    document.getElementById('pdfPreview').classList.remove('active');
+    document.body.classList.remove('printing-mode');
+  }
+
+  function formatDateHeader(iso) {
+    const [y, m, d] = iso.split('-');
+    const date = new Date(+y, +m - 1, +d);
+    const weekdays = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
+    const months = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    return `<span class="weekday">${weekdays[date.getDay()]}</span> · ${+d} de ${months[+m-1]} de ${y}`;
+  }
+
+  // ===== Import Excel =====
+  const importBtn = document.getElementById('importBtn');
+  const importFile = document.getElementById('importFile');
+  const importModal = document.getElementById('importModal');
+  const importSheet = document.getElementById('importSheet');
+  const importDateCol = document.getElementById('importDateCol');
+  const importTaskCol = document.getElementById('importTaskCol');
+  const importSkipHeader = document.getElementById('importSkipHeader');
+  const importPreview = document.getElementById('importPreview');
+  const importCancel = document.getElementById('importCancel');
+  const importConfirm = document.getElementById('importConfirm');
+
+  let workbookData = null;
+
+  importBtn.addEventListener('click', () => importFile.click());
+
+  importFile.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const data = new Uint8Array(ev.target.result);
+        const wb = XLSX.read(data, { type: 'array', cellDates: true });
+        workbookData = wb;
+        openImportModal(wb);
+      } catch (err) {
+        alert('Erro ao ler o arquivo: ' + err.message);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    importFile.value = ''; // reset to allow re-importing same file
+  });
+
+  function openImportModal(wb) {
+    // Populate sheets
+    importSheet.innerHTML = wb.SheetNames.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+    importSheet.value = wb.SheetNames[0];
+    populateColumns();
+    importModal.classList.add('active');
+  }
+
+  function colLetter(n) {
+    let s = '';
+    n = n + 1;
+    while (n > 0) {
+      const m = (n - 1) % 26;
+      s = String.fromCharCode(65 + m) + s;
+      n = Math.floor((n - 1) / 26);
+    }
+    return s;
+  }
+
+  function getSheetRows() {
+    if (!workbookData) return [];
+    const sheet = workbookData.Sheets[importSheet.value];
+    return XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false, dateNF: 'yyyy-mm-dd' });
+  }
+
+  function populateColumns() {
+    const rows = getSheetRows();
+    if (rows.length === 0) {
+      importDateCol.innerHTML = '<option>(planilha vazia)</option>';
+      importTaskCol.innerHTML = '<option>(planilha vazia)</option>';
+      importPreview.innerHTML = '<em>Planilha vazia</em>';
+      return;
+    }
+
+    const maxCols = Math.max(...rows.slice(0, 20).map(r => r.length));
+    const headerRow = rows[0] || [];
+
+    let options = '';
+    for (let i = 0; i < maxCols; i++) {
+      const letter = colLetter(i);
+      const header = headerRow[i] ? String(headerRow[i]).trim() : '';
+      const label = header ? `${letter} — ${header}` : letter;
+      options += `<option value="${i}">${escapeHtml(label)}</option>`;
+    }
+    importDateCol.innerHTML = options;
+    importTaskCol.innerHTML = options;
+
+    // Auto-detect: look for "data"/"date" in headers
+    let dateIdx = 0, taskIdx = 1;
+    headerRow.forEach((h, i) => {
+      const hl = String(h).toLowerCase();
+      if (/data|date|dia/.test(hl)) dateIdx = i;
+      if (/tarefa|task|atividade|descri|ativ/.test(hl)) taskIdx = i;
+    });
+    if (dateIdx === taskIdx && maxCols > 1) taskIdx = dateIdx === 0 ? 1 : 0;
+    importDateCol.value = dateIdx;
+    importTaskCol.value = taskIdx;
+
+    updatePreview();
+  }
+
+  function parseImportDate(val) {
+    if (val == null || val === '') return null;
+    if (val instanceof Date && !isNaN(val)) {
+      const d = new Date(val.getTime() - val.getTimezoneOffset() * 60000);
+      return d.toISOString().slice(0, 10);
+    }
+    const s = String(val).trim();
+    // ISO yyyy-mm-dd or yyyy/mm/dd
+    let m = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+    if (m) {
+      const y = m[1], mo = m[2].padStart(2, '0'), d = m[3].padStart(2, '0');
+      return `${y}-${mo}-${d}`;
+    }
+    // dd/mm/yyyy or dd-mm-yyyy or dd.mm.yyyy
+    m = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})/);
+    if (m) {
+      let y = m[3];
+      if (y.length === 2) y = (parseInt(y) > 50 ? '19' : '20') + y;
+      const mo = m[2].padStart(2, '0'), d = m[1].padStart(2, '0');
+      return `${y}-${mo}-${d}`;
+    }
+    // Excel serial number
+    if (/^\d+(\.\d+)?$/.test(s)) {
+      const serial = parseFloat(s);
+      if (serial > 0 && serial < 100000) {
+        const epoch = new Date(Date.UTC(1899, 11, 30));
+        const d = new Date(epoch.getTime() + serial * 86400000);
+        return d.toISOString().slice(0, 10);
+      }
+    }
+    // Fallback: try Date.parse
+    const parsed = new Date(s);
+    if (!isNaN(parsed)) {
+      const d = new Date(parsed.getTime() - parsed.getTimezoneOffset() * 60000);
+      return d.toISOString().slice(0, 10);
+    }
+    return null;
+  }
+
+  function updatePreview() {
+    const rows = getSheetRows();
+    const dCol = parseInt(importDateCol.value);
+    const tCol = parseInt(importTaskCol.value);
+    const start = importSkipHeader.checked ? 1 : 0;
+    const sample = rows.slice(start, start + 5);
+
+    if (sample.length === 0) {
+      importPreview.innerHTML = '<em>Sem dados para visualizar</em>';
+      return;
+    }
+
+    let validCount = 0, invalidCount = 0;
+    const allBody = rows.slice(start);
+    allBody.forEach(r => {
+      const dStr = parseImportDate(r[dCol]);
+      const text = String(r[tCol] || '').trim();
+      if (dStr && text) validCount++;
+      else if (r[dCol] || r[tCol]) invalidCount++;
+    });
+
+    let html = `<strong>Pré-visualização (primeiras ${sample.length} linhas):</strong><br>`;
+    sample.forEach(r => {
+      const dStr = parseImportDate(r[dCol]);
+      const text = String(r[tCol] || '').trim();
+      const ok = dStr && text;
+      html += `<div style="padding:3px 0;color:${ok ? 'var(--success)' : 'var(--danger)'}">`;
+      html += `${ok ? '✓' : '✗'} <strong>${escapeHtml(dStr || String(r[dCol] || '(vazio)'))}</strong> — ${escapeHtml(text || '(vazio)')}`;
+      html += `</div>`;
+    });
+    html += `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">`;
+    html += `<strong>${validCount}</strong> tarefa(s) válida(s)`;
+    if (invalidCount > 0) html += ` · <span style="color:var(--danger)">${invalidCount} linha(s) inválida(s)</span>`;
+    html += `</div>`;
+    importPreview.innerHTML = html;
+  }
+
+  importSheet.addEventListener('change', populateColumns);
+  importDateCol.addEventListener('change', updatePreview);
+  importTaskCol.addEventListener('change', updatePreview);
+  importSkipHeader.addEventListener('change', updatePreview);
+
+  importCancel.addEventListener('click', () => importModal.classList.remove('active'));
+  importModal.addEventListener('click', e => {
+    if (e.target === importModal) importModal.classList.remove('active');
+  });
+
+  importConfirm.addEventListener('click', () => {
+    const rows = getSheetRows();
+    const dCol = parseInt(importDateCol.value);
+    const tCol = parseInt(importTaskCol.value);
+    const start = importSkipHeader.checked ? 1 : 0;
+    const body = rows.slice(start);
+
+    let imported = 0, skipped = 0;
+    body.forEach(r => {
+      const dStr = parseImportDate(r[dCol]);
+      const text = String(r[tCol] || '').trim();
+      if (dStr && text) {
+        tasks.push({ id: Date.now() + Math.random(), date: dStr, text });
+        history[text] = (history[text] || 0) + 1;
+        imported++;
+      } else if (r[dCol] || r[tCol]) {
+        skipped++;
+      }
+    });
+
+    if (imported === 0) {
+      alert('Nenhuma tarefa válida foi encontrada. Verifique se as colunas selecionadas estão corretas.');
+      return;
+    }
+
+    save();
+    render();
+    importModal.classList.remove('active');
+    alert(`${imported} tarefa(s) importada(s) com sucesso!${skipped > 0 ? `\n${skipped} linha(s) ignorada(s) por estarem incompletas.` : ''}`);
+  });
+
+  // ===== Categorias =====
+  const catModal = document.getElementById('catModal');
+  const catList = document.getElementById('catList');
+  const catAdd = document.getElementById('catAdd');
+  const catClose = document.getElementById('catClose');
+
+  function openCategoryModal() {
+    renderCatList();
+    catModal.classList.add('active');
+  }
+
+  function renderCatList() {
+    if (categories.length === 0) {
+      catList.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px">Nenhuma categoria. Adicione uma abaixo.</p>';
+      return;
+    }
+    catList.innerHTML = categories.map((c, i) => `
+      <div class="cat-row" data-id="${c.id}">
+        <input type="color" value="${c.color}" data-field="color" title="Cor">
+        <input type="text" value="${escapeHtml(c.name)}" data-field="name" placeholder="Nome da categoria">
+        <label class="cat-text-toggle" title="Colorir texto das tarefas com esta cor">
+          <input type="checkbox" data-field="colorText" ${c.colorText ? 'checked' : ''}>
+          <span>colorir texto</span>
+        </label>
+        <button class="icon-btn delete" data-action="delete" title="Excluir">🗑️</button>
+      </div>
+    `).join('');
+
+    catList.querySelectorAll('.cat-row').forEach(row => {
+      const id = row.dataset.id;
+      row.querySelector('[data-field="color"]').addEventListener('input', e => {
+        const cat = getCategory(id);
+        if (cat) { cat.color = e.target.value; save(); render(); }
+      });
+      row.querySelector('[data-field="name"]').addEventListener('input', e => {
+        const cat = getCategory(id);
+        if (cat) { cat.name = e.target.value; save(); render(); }
+      });
+      row.querySelector('[data-field="colorText"]').addEventListener('change', e => {
+        const cat = getCategory(id);
+        if (cat) { cat.colorText = e.target.checked; save(); render(); }
+      });
+      row.querySelector('[data-action="delete"]').addEventListener('click', () => {
+        if (!confirm(`Excluir a categoria "${getCategory(id)?.name || ''}"? As tarefas com essa categoria ficarão sem categoria.`)) return;
+        categories = categories.filter(c => c.id !== id);
+        tasks.forEach(t => { if (t.categoryId === id) t.categoryId = null; });
+        if (selectedCategoryId === id) selectedCategoryId = categories[0]?.id || null;
+        save();
+        renderCatList();
+        render();
+      });
+    });
+  }
+
+  catAdd.addEventListener('click', () => {
+    const palette = ['#2563eb','#059669','#f59e0b','#dc2626','#7c3aed','#0891b2','#db2777','#65a30d','#ea580c','#475569'];
+    const used = new Set(categories.map(c => c.color));
+    const color = palette.find(c => !used.has(c)) || palette[Math.floor(Math.random() * palette.length)];
+    const newCat = { id: 'cat-' + Date.now(), name: 'Nova categoria', color, colorText: false };
+    categories.push(newCat);
+    if (!selectedCategoryId) selectedCategoryId = newCat.id;
+    save();
+    renderCatList();
+    render();
+    // Focus the new name input
+    setTimeout(() => {
+      const lastRow = catList.querySelector(`[data-id="${newCat.id}"] [data-field="name"]`);
+      if (lastRow) { lastRow.focus(); lastRow.select(); }
+    }, 50);
+  });
+
+  catClose.addEventListener('click', () => catModal.classList.remove('active'));
+  catModal.addEventListener('click', e => {
+    if (e.target === catModal) catModal.classList.remove('active');
+  });
+
+  // ===== Firebase Sync =====
+  const SYNC_CONFIG_KEY = 'tarefas_sync_config';
+  const SYNC_CODE_KEY = 'tarefas_sync_code';
+  const FIREBASE_DOC_COLLECTION = 'tarefas';
+
+  let firebaseApp = null;
+  let firestoreDb = null;
+  let firestoreUnsub = null;
+  let photosUnsub = null;
+  let photoCache = {}; // photoId -> dataUrl (base64)
+  let applyingRemote = false; // prevent echo: skip push when applying remote snapshot
+  let pendingPushTimer = null;
+  let currentSyncCode = null;
+  let lastRemoteUpdatedAt = 0;
+
+  const syncBtn = document.getElementById('syncStatusBtn');
+  const syncModal = document.getElementById('syncModal');
+  const syncConfigInput = document.getElementById('syncConfigInput');
+  const syncCodeInput = document.getElementById('syncCodeInput');
+  const generateSyncCode = document.getElementById('generateSyncCode');
+  const syncConnect = document.getElementById('syncConnect');
+  const syncCancel = document.getElementById('syncCancel');
+  const syncDisconnect = document.getElementById('syncDisconnect');
+  const syncStatusMsg = document.getElementById('syncStatusMsg');
+
+  function setSyncStatus(state, label) {
+    syncBtn.classList.remove('connected', 'error', 'syncing');
+    if (state) syncBtn.classList.add(state);
+    syncBtn.querySelector('.sync-label').textContent = label;
+  }
+
+  function showSyncMsg(text, kind = 'info') {
+    syncStatusMsg.textContent = text;
+    syncStatusMsg.style.display = 'block';
+    const colors = {
+      info: { bg: '#dbeafe', fg: '#1e40af' },
+      success: { bg: '#d1fae5', fg: '#065f46' },
+      error: { bg: '#fee2e2', fg: '#991b1b' }
+    };
+    const c = colors[kind] || colors.info;
+    syncStatusMsg.style.background = c.bg;
+    syncStatusMsg.style.color = c.fg;
+  }
+
+  function parseFirebaseConfig(text) {
+    // Accept JS-style or JSON-style config
+    let str = text.trim();
+    // Try parsing as JSON first
+    try { return JSON.parse(str); } catch (e) {}
+    // Try to extract object from "const firebaseConfig = { ... };"
+    const m = str.match(/\{[\s\S]*\}/);
+    if (m) {
+      let obj = m[0];
+      // Convert JS-style keys to JSON keys (unquoted keys -> quoted)
+      try {
+        // eslint-disable-next-line no-new-func
+        return Function('"use strict";return (' + obj + ')')();
+      } catch (e) {
+        throw new Error('Não consegui interpretar o objeto. Cole exatamente como o Firebase mostrou.');
+      }
+    }
+    throw new Error('Configuração inválida. Cole o objeto firebaseConfig completo.');
+  }
+
+  function openSyncModal() {
+    const savedConfig = localStorage.getItem(SYNC_CONFIG_KEY);
+    const savedCode = localStorage.getItem(SYNC_CODE_KEY);
+    if (savedConfig) syncConfigInput.value = savedConfig;
+    if (savedCode) syncCodeInput.value = savedCode;
+    syncDisconnect.style.display = firebaseApp ? 'inline-block' : 'none';
+    syncStatusMsg.style.display = 'none';
+    syncModal.classList.add('active');
+  }
+
+  syncBtn.addEventListener('click', openSyncModal);
+  syncCancel.addEventListener('click', () => syncModal.classList.remove('active'));
+  syncModal.addEventListener('click', e => { if (e.target === syncModal) syncModal.classList.remove('active'); });
+
+  generateSyncCode.addEventListener('click', () => {
+    const adjectives = ['rapido','sereno','azul','solar','lunar','verde','claro','forte','calmo','agil'];
+    const nouns = ['gato','rio','sol','mar','vento','bosque','pico','tigre','aguia','pedra'];
+    const code = adjectives[Math.floor(Math.random()*adjectives.length)] + '-' +
+                 nouns[Math.floor(Math.random()*nouns.length)] + '-' +
+                 Math.floor(Math.random() * 9000 + 1000);
+    syncCodeInput.value = code;
+  });
+
+  syncDisconnect.addEventListener('click', () => {
+    if (!confirm('Desconectar a sincronização? Os dados continuam salvos localmente.')) return;
+    disconnectFirebase();
+    localStorage.removeItem(SYNC_CONFIG_KEY);
+    localStorage.removeItem(SYNC_CODE_KEY);
+    syncModal.classList.remove('active');
+    setSyncStatus(null, 'Sync desativado');
+  });
+
+  syncConnect.addEventListener('click', async () => {
+    const configText = syncConfigInput.value.trim();
+    const code = syncCodeInput.value.trim();
+    if (!configText) {
+      showSyncMsg('Cole a configuração Firebase', 'error');
+      return;
+    }
+    if (!code || !/^[a-z0-9-_]{3,50}$/i.test(code)) {
+      showSyncMsg('Código inválido. Use 3-50 caracteres: letras, números, - ou _', 'error');
+      return;
+    }
+    let config;
+    try {
+      config = parseFirebaseConfig(configText);
+    } catch (e) {
+      showSyncMsg(e.message, 'error');
+      return;
+    }
+    if (!config.apiKey || !config.projectId) {
+      showSyncMsg('Configuração incompleta — faltando apiKey ou projectId', 'error');
+      return;
+    }
+
+    showSyncMsg('Conectando…', 'info');
+    try {
+      await connectFirebase(config, code);
+      localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify(config));
+      localStorage.setItem(SYNC_CODE_KEY, code);
+      showSyncMsg('Conectado! Sincronizando…', 'success');
+      setTimeout(() => syncModal.classList.remove('active'), 1200);
+    } catch (e) {
+      console.error(e);
+      showSyncMsg('Erro: ' + (e.message || e), 'error');
+      setSyncStatus('error', 'Erro de sync');
+    }
+  });
+
+  async function connectFirebase(config, code) {
+    // Cleanup any previous connection
+    disconnectFirebase();
+
+    setSyncStatus('syncing', 'Conectando…');
+
+    firebaseApp = firebase.initializeApp(config, 'app-' + Date.now());
+    firestoreDb = firebase.firestore(firebaseApp);
+    currentSyncCode = code;
+
+    const docRef = firestoreDb.collection(FIREBASE_DOC_COLLECTION).doc(code);
+
+    // First read: decide whether to merge local data into remote or replace local with remote
+    const initialSnap = await docRef.get();
+    if (!initialSnap.exists) {
+      // First device: push current local data to remote
+      await pushToFirebase(true);
+    } else {
+      // Existing remote: merge intelligently
+      const remote = initialSnap.data();
+      mergeRemoteIntoLocal(remote);
+      // After merging, push back the merged state so both devices have the same
+      await pushToFirebase(true);
+    }
+
+    // Subscribe to real-time updates (main doc with tasks/history/categories)
+    firestoreUnsub = docRef.onSnapshot(snap => {
+      if (!snap.exists) return;
+      const data = snap.data();
+      // Skip our own writes that are echoed back
+      if (data.updatedAt && data.updatedAt === lastRemoteUpdatedAt) return;
+      lastRemoteUpdatedAt = data.updatedAt || 0;
+      applyingRemote = true;
+      try {
+        applyRemoteData(data);
+      } finally {
+        applyingRemote = false;
+      }
+    }, err => {
+      console.error('Sync error:', err);
+      setSyncStatus('error', 'Erro de sync');
+    });
+
+    // Subscribe to photo subcollection
+    const photosRef = firestoreDb.collection(FIREBASE_DOC_COLLECTION).doc(code).collection('photos');
+    photosUnsub = photosRef.onSnapshot(snap => {
+      const newCache = {};
+      snap.forEach(doc => {
+        const d = doc.data();
+        if (d.dataUrl) newCache[doc.id] = d.dataUrl;
+      });
+      photoCache = newCache;
+      render();
+    }, err => {
+      console.error('Photos sync error:', err);
+    });
+
+    setSyncStatus('connected', 'Sync ativo · ' + code);
+  }
+
+  function disconnectFirebase() {
+    if (firestoreUnsub) { firestoreUnsub(); firestoreUnsub = null; }
+    if (photosUnsub) { photosUnsub(); photosUnsub = null; }
+    if (firebaseApp) {
+      try { firebaseApp.delete(); } catch (e) {}
+      firebaseApp = null;
+    }
+    firestoreDb = null;
+    currentSyncCode = null;
+    photoCache = {};
+  }
+
+  // ===== Photo Upload & Display (Firestore-based) =====
+  // Compress to ~800px, JPEG q=0.75 → typically 50-100KB per photo as base64
+  async function compressImageToDataUrl(file, maxDim = 800, quality = 0.75) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const reader = new FileReader();
+      reader.onload = e => { img.src = e.target.result; };
+      reader.onerror = reject;
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          const scale = maxDim / Math.max(width, height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        // Use JPEG to keep size small
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(dataUrl);
+      };
+      img.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function uploadPhoto(file) {
+    if (!firestoreDb || !currentSyncCode) {
+      throw new Error('Conecte a sincronização (Firebase) antes de adicionar fotos');
+    }
+    let dataUrl = await compressImageToDataUrl(file);
+    // Safety: if photo somehow exceeds Firestore's 1MB doc limit, recompress smaller
+    if (dataUrl.length > 900_000) {
+      dataUrl = await compressImageToDataUrl(file, 600, 0.6);
+    }
+    const photoDoc = firestoreDb.collection(FIREBASE_DOC_COLLECTION).doc(currentSyncCode).collection('photos').doc();
+    await photoDoc.set({
+      dataUrl,
+      ts: Date.now()
+    });
+    // Update local cache immediately so UI is responsive
+    photoCache[photoDoc.id] = dataUrl;
+    return photoDoc.id;
+  }
+
+  async function deletePhotoFromStorage(photoId) {
+    if (!firestoreDb || !currentSyncCode || !photoId) return;
+    // Support legacy {url, path} objects from previous Storage-based version
+    if (typeof photoId === 'object') {
+      console.warn('Foto antiga (Storage) ignorada no delete');
+      return;
+    }
+    try {
+      await firestoreDb.collection(FIREBASE_DOC_COLLECTION).doc(currentSyncCode).collection('photos').doc(photoId).delete();
+      delete photoCache[photoId];
+    } catch (e) {
+      console.warn('Falha ao deletar foto:', e);
+    }
+  }
+
+  // Helper: get displayable URL from photo entry (supports new ID format and legacy object)
+  function getPhotoDisplayUrl(p) {
+    if (!p) return '';
+    if (typeof p === 'string') return photoCache[p] || ''; // new format: photo ID
+    if (typeof p === 'object') return p.url || ''; // legacy
+    return '';
+  }
+
+  // Pending photo IDs for the task being typed (cleared after Add)
+  let pendingPhotos = []; // array of photo IDs
+
+  function renderPendingPhotos() {
+    const container = document.getElementById('pendingPhotos');
+    if (!container) return;
+    if (pendingPhotos.length === 0) { container.innerHTML = ''; return; }
+    container.innerHTML = pendingPhotos.map((id, i) => {
+      const url = photoCache[id] || '';
+      return `
+        <div class="pending-photo">
+          <img src="${url}" alt="Foto pendente">
+          <button class="pending-photo-remove" data-idx="${i}" title="Remover">×</button>
+        </div>
+      `;
+    }).join('');
+    container.querySelectorAll('.pending-photo-remove').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const idx = parseInt(btn.dataset.idx);
+        const photoId = pendingPhotos[idx];
+        await deletePhotoFromStorage(photoId);
+        pendingPhotos.splice(idx, 1);
+        renderPendingPhotos();
+      });
+    });
+  }
+
+  async function handlePhotoFiles(files) {
+    if (!firestoreDb) {
+      alert('Para usar fotos, primeiro conecte a sincronização (botão Sync no topo).');
+      return;
+    }
+    const arr = Array.from(files || []);
+    if (arr.length === 0) return;
+    const photoBtns = document.querySelectorAll('.photo-btn');
+    photoBtns.forEach(b => { b.disabled = true; b.classList.add('uploading'); });
+    try {
+      for (const f of arr) {
+        try {
+          const photoId = await uploadPhoto(f);
+          pendingPhotos.push(photoId);
+          renderPendingPhotos();
+        } catch (e) {
+          console.error('Upload falhou:', e);
+          alert('Falha ao enviar foto: ' + (e.message || e));
+        }
+      }
+    } finally {
+      photoBtns.forEach(b => { b.disabled = false; b.classList.remove('uploading'); });
+    }
+  }
+
+  // Photo viewer modal
+  let viewerPhotos = [];
+  let viewerIndex = 0;
+
+  function viewPhoto(taskId, photoIndex) {
+    const task = tasks.find(t => t.id === taskId || t.id === +taskId);
+    if (!task || !task.photos) return;
+    viewerPhotos = task.photos;
+    viewerIndex = photoIndex || 0;
+    renderPhotoViewer();
+    document.getElementById('photoViewer').classList.add('active');
+  }
+
+  function renderPhotoViewer() {
+    if (viewerPhotos.length === 0) return;
+    const photo = viewerPhotos[viewerIndex];
+    const url = getPhotoDisplayUrl(photo);
+    document.getElementById('photoViewerImg').src = url;
+    document.getElementById('photoViewerCounter').textContent =
+      viewerPhotos.length > 1 ? `${viewerIndex + 1} / ${viewerPhotos.length}` : '';
+    document.getElementById('photoViewerPrev').style.visibility = viewerPhotos.length > 1 ? 'visible' : 'hidden';
+    document.getElementById('photoViewerNext').style.visibility = viewerPhotos.length > 1 ? 'visible' : 'hidden';
+  }
+
+  function closePhotoViewer() {
+    document.getElementById('photoViewer').classList.remove('active');
+  }
+
+  function photoViewerNav(delta) {
+    if (viewerPhotos.length === 0) return;
+    viewerIndex = (viewerIndex + delta + viewerPhotos.length) % viewerPhotos.length;
+    renderPhotoViewer();
+  }
+
+  function mergeRemoteIntoLocal(remote) {
+    // Deduplicate tasks by (date, text, id)
+    const taskKey = t => `${t.date}|${(t.text || '').trim().toLowerCase()}`;
+    const localKeys = new Set(tasks.map(taskKey));
+    const remoteKeys = new Set((remote.tasks || []).map(taskKey));
+    const merged = [...tasks];
+    (remote.tasks || []).forEach(rt => {
+      if (!localKeys.has(taskKey(rt))) merged.push(rt);
+    });
+    tasks = merged;
+
+    // Merge history (take max counts)
+    const remoteHistory = remote.history || {};
+    Object.entries(remoteHistory).forEach(([text, count]) => {
+      history[text] = Math.max(history[text] || 0, count);
+    });
+
+    // Merge categories by id
+    if (Array.isArray(remote.categories)) {
+      const catIds = new Set(categories.map(c => c.id));
+      remote.categories.forEach(rc => {
+        if (!catIds.has(rc.id)) categories.push(rc);
+      });
+    }
+
+    save();
+    render();
+  }
+
+  function applyRemoteData(remote) {
+    if (Array.isArray(remote.tasks)) tasks = remote.tasks;
+    if (remote.history && typeof remote.history === 'object') history = remote.history;
+    if (Array.isArray(remote.categories) && remote.categories.length > 0) categories = remote.categories;
+    save();
+    render();
+  }
+
+  function pushToFirebase(immediate = false) {
+    if (!firestoreDb || !currentSyncCode || applyingRemote) return Promise.resolve();
+    if (pendingPushTimer) clearTimeout(pendingPushTimer);
+    const doPush = async () => {
+      try {
+        setSyncStatus('syncing', 'Sincronizando…');
+        const updatedAt = Date.now();
+        lastRemoteUpdatedAt = updatedAt;
+        await firestoreDb.collection(FIREBASE_DOC_COLLECTION).doc(currentSyncCode).set({
+          tasks, history, categories, updatedAt
+        });
+        setSyncStatus('connected', 'Sync ativo · ' + currentSyncCode);
+      } catch (e) {
+        console.error('Push error:', e);
+        setSyncStatus('error', 'Erro de sync');
+      }
+    };
+    if (immediate) return doPush();
+    return new Promise(r => {
+      pendingPushTimer = setTimeout(() => { doPush().then(r); }, 600);
+    });
+  }
+
+  // Hook into save() to also push to Firebase
+  const _originalSave = save;
+  save = function() {
+    _originalSave();
+    if (firestoreDb && !applyingRemote) pushToFirebase();
+  };
+
+  // Auto-connect on load if config exists
+  function autoConnectSync() {
+    const savedConfig = localStorage.getItem(SYNC_CONFIG_KEY);
+    const savedCode = localStorage.getItem(SYNC_CODE_KEY);
+    if (savedConfig && savedCode) {
+      try {
+        const config = JSON.parse(savedConfig);
+        connectFirebase(config, savedCode).catch(err => {
+          console.error('Auto-sync failed:', err);
+          setSyncStatus('error', 'Reconectar');
+        });
+      } catch (e) {
+        console.error('Invalid saved config:', e);
+      }
+    }
+  }
+
+  // ===== Service Worker (PWA offline support) =====
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js').catch(err => {
+        console.log('SW registration failed (não tem problema se rodando localmente):', err);
+      });
+    });
+  }
+
+  // Expose for inline handlers
+  window.deleteTask = deleteTask;
+  window.editTask = editTask;
+  window.closePdfPreview = closePdfPreview;
+  window.viewPhoto = viewPhoto;
+  window.closePhotoViewer = closePhotoViewer;
+  window.photoViewerNav = photoViewerNav;
+
+  render();
+  autoConnectSync();
+</script>
+</body>
+</html>
