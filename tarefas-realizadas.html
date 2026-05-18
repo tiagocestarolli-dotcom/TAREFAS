@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Tarefas Realizadas</title>
+<title>Tarefas</title>
 
 <!-- PWA -->
 <link rel="manifest" href="manifest.json">
@@ -45,6 +45,11 @@
     line-height: 1.5;
     min-height: 100vh;
     padding: 24px;
+    /* Respect iPhone Dynamic Island / notch + home indicator */
+    padding-top: max(24px, calc(env(safe-area-inset-top, 0px) + 12px));
+    padding-bottom: max(24px, calc(env(safe-area-inset-bottom, 0px) + 12px));
+    padding-left: max(24px, env(safe-area-inset-left, 0px));
+    padding-right: max(24px, env(safe-area-inset-right, 0px));
   }
 
   .container {
@@ -409,6 +414,8 @@
     align-items: center;
     justify-content: center;
     z-index: 1000;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   .modal-overlay.active {
@@ -705,8 +712,8 @@
   }
   .photo-viewer-close {
     position: absolute;
-    top: 16px;
-    right: 16px;
+    top: calc(16px + env(safe-area-inset-top, 0px));
+    right: calc(16px + env(safe-area-inset-right, 0px));
     width: 44px;
     height: 44px;
     border-radius: 50%;
@@ -756,6 +763,55 @@
   }
   .edit-task-photos .pending-photo { width: 64px; height: 64px; }
 
+  /* Brand footer */
+  .app-footer {
+    margin-top: 56px;
+    padding: 28px 0 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    font-family: Georgia, "Times New Roman", serif;
+    color: #6b7280;
+    user-select: none;
+  }
+  .brand-mark {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #1f2937;
+    background: linear-gradient(180deg, #c9a55c 0%, #a88243 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .brand-divider {
+    width: 1px;
+    height: 14px;
+    background: var(--border);
+  }
+  .brand-text {
+    font-size: 11px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    font-weight: 500;
+    color: #9ca3af;
+    font-family: -apple-system, "Helvetica Neue", sans-serif;
+  }
+  .brand-year {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: #9ca3af;
+    font-family: -apple-system, "Helvetica Neue", sans-serif;
+    font-weight: 500;
+  }
+  .brand-year::before {
+    content: "·";
+    margin-right: 8px;
+    color: #d1d5db;
+  }
+
   /* Sync button */
   .sync-btn {
     display: inline-flex;
@@ -799,7 +855,13 @@
   }
 
   @media (max-width: 600px) {
-    body { padding: 12px; padding-top: calc(env(safe-area-inset-top, 0) + 12px); padding-bottom: calc(env(safe-area-inset-bottom, 0) + 12px); }
+    body {
+      padding: 12px;
+      padding-top: max(12px, calc(env(safe-area-inset-top, 0px) + 8px));
+      padding-bottom: max(12px, calc(env(safe-area-inset-bottom, 0px) + 8px));
+      padding-left: max(12px, env(safe-area-inset-left, 0px));
+      padding-right: max(12px, env(safe-area-inset-right, 0px));
+    }
     h1 { font-size: 22px; }
     .input-row { flex-direction: column; }
     .input-row input[type="date"] { flex: 1; }
@@ -833,6 +895,9 @@
     background: #1f2937;
     color: white;
     padding: 14px 24px;
+    padding-top: calc(14px + env(safe-area-inset-top, 0px));
+    padding-left: max(24px, env(safe-area-inset-left, 0px));
+    padding-right: max(24px, env(safe-area-inset-right, 0px));
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -976,12 +1041,22 @@
     </div>
     <div class="spacer"></div>
     <input type="file" id="importFile" accept=".xlsx,.xls,.csv" style="display:none">
+    <input type="file" id="importJsonFile" accept=".json,application/json" style="display:none">
+    <button class="secondary" id="exportJsonBtn">⬇ Backup</button>
+    <button class="secondary" id="importJsonBtn">⬆ Restaurar</button>
     <button class="secondary" id="importBtn">Importar Excel</button>
     <button class="secondary" id="pdfBtn">Exportar PDF</button>
     <button class="danger" id="clearAllBtn">Limpar tudo</button>
   </div>
 
   <div id="report"></div>
+
+  <footer class="app-footer">
+    <span class="brand-mark">TC</span>
+    <span class="brand-divider"></span>
+    <span class="brand-text">Development</span>
+    <span class="brand-year">2026</span>
+  </footer>
 
 </div>
 
@@ -1660,6 +1735,88 @@
     }
   });
 
+  // ===== Backup / Restore JSON =====
+  document.getElementById('exportJsonBtn').addEventListener('click', () => {
+    const data = {
+      version: 'v1',
+      exportedAt: new Date().toISOString(),
+      tasksCount: tasks.length,
+      tasks,
+      history,
+      categories
+    };
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tarefas-backup-${todayISO()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+
+  document.getElementById('importJsonBtn').addEventListener('click', () => {
+    document.getElementById('importJsonFile').click();
+  });
+
+  document.getElementById('importJsonFile').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (!data || !Array.isArray(data.tasks)) {
+          alert('Arquivo inválido — não parece ser um backup do Tarefas.');
+          return;
+        }
+        const existing = new Set(tasks.map(t => `${t.date}|${(t.text || '').trim().toLowerCase()}`));
+        let added = 0, skipped = 0;
+        data.tasks.forEach(t => {
+          const key = `${t.date}|${(t.text || '').trim().toLowerCase()}`;
+          if (existing.has(key)) { skipped++; return; }
+          existing.add(key);
+          tasks.push({
+            id: Date.now() + Math.random(),
+            date: t.date,
+            text: t.text,
+            categoryId: t.categoryId || null,
+            photos: Array.isArray(t.photos) ? t.photos : []
+          });
+          added++;
+        });
+        if (data.history && typeof data.history === 'object') {
+          Object.entries(data.history).forEach(([text, count]) => {
+            history[text] = Math.max(history[text] || 0, count);
+          });
+        }
+        if (Array.isArray(data.categories)) {
+          const catIds = new Set(categories.map(c => c.id));
+          data.categories.forEach(c => {
+            if (c && c.id && !catIds.has(c.id)) {
+              categories.push({
+                id: c.id,
+                name: c.name || 'Sem nome',
+                color: c.color || '#6b7280',
+                colorText: !!c.colorText
+              });
+              catIds.add(c.id);
+            }
+          });
+        }
+        save();
+        render();
+        alert(`Restauração concluída!\n${added} tarefa(s) importada(s)${skipped > 0 ? `\n${skipped} já existiam (puladas)` : ''}`);
+      } catch (err) {
+        alert('Erro ao ler o arquivo: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
   // PDF
   pdfBtn.addEventListener('click', () => {
     pdfRange.value = 'all';
@@ -1793,32 +1950,25 @@
   }
   .day-header {
     text-align: left;
-    padding-bottom: 3pt;
+    padding-bottom: 2pt;
     margin-bottom: 4pt;
     border-bottom: 1px solid #d1d5db;
     background: white;
   }
   .day-title {
-    font-family: Georgia, 'Times New Roman', serif;
-    font-size: 13pt;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 10.5pt;
     font-weight: 600;
-    color: #111827;
-    letter-spacing: -0.01em;
+    color: #374151;
+    letter-spacing: 0.01em;
     display: inline;
   }
   .day-title .weekday {
-    color: #6b7280;
+    color: #9ca3af;
     font-weight: 400;
-    font-style: italic;
-    margin-right: 4pt;
+    margin-right: 3pt;
   }
-  .day-count {
-    font-size: 9pt;
-    color: #6b7280;
-    font-variant-numeric: tabular-nums;
-    margin-left: 8pt;
-    font-style: italic;
-  }
+  .day-count { display: none; }
 
   .tasks-prose {
     font-size: 10.5pt;

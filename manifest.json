@@ -1,5 +1,5 @@
 {
-  "name": "Tarefas Realizadas",
+  "name": "Tarefas",
   "short_name": "Tarefas",
   "description": "Registre suas tarefas diárias e gere relatórios em PDF",
   "start_url": "./tarefas-realizadas.html",

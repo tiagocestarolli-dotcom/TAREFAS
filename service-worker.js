@@ -1,5 +1,5 @@
 // Service Worker for Tarefas Realizadas PWA
-const CACHE_VERSION = 'v4-2026-05-16';
+const CACHE_VERSION = 'v7-2026-05-17-report';
 const CACHE_NAME = `tarefas-${CACHE_VERSION}`;
 
 // Assets to cache (same-origin only — external CDNs are handled at runtime)
