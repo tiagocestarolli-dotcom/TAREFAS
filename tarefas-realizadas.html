@@ -828,6 +828,321 @@
     color: #d1d5db;
   }
 
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-top: 20px;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tab {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    padding: 12px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active {
+    color: var(--text);
+    border-bottom-color: var(--accent);
+  }
+  .tab-badge {
+    background: var(--accent);
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 10px;
+    min-width: 18px;
+    text-align: center;
+    display: none;
+  }
+  .tab-badge.has-content { display: inline-block; }
+  .tab-badge.overdue { background: var(--danger); }
+
+  /* Views */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* === A Fazer === */
+  .todo-detail-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+  .todo-detail-label {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .todo-due {
+    flex: 1;
+    max-width: 240px;
+  }
+  .todo-clear-date {
+    padding: 6px 12px;
+    font-size: 16px;
+    line-height: 1;
+  }
+  .todo-filter-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .todo-filter-label input { width: auto; }
+
+  .todo-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 14px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .todo-section-header {
+    padding: 12px 18px;
+    background: #f9fafb;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .todo-section.overdue .todo-section-header { background: #fee2e2; color: #991b1b; }
+  .todo-section.today .todo-section-header { background: #fef3c7; color: #92400e; }
+  .todo-section.upcoming .todo-section-header { background: #dbeafe; color: #1e40af; }
+  .todo-section.someday .todo-section-header { background: #f3f4f6; color: var(--text-muted); }
+  .todo-section.done .todo-section-header { background: #d1fae5; color: #065f46; }
+
+  .todo-item {
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .todo-item:last-child { border-bottom: none; }
+  .todo-item.done .todo-text { text-decoration: line-through; color: var(--text-muted); }
+  .todo-checkbox {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border);
+    border-radius: 50%;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-top: 2px;
+    background: var(--surface);
+    transition: all 0.15s;
+  }
+  .todo-checkbox:hover { border-color: var(--accent); }
+  .todo-checkbox.checked {
+    background: var(--success);
+    border-color: var(--success);
+    position: relative;
+  }
+  .todo-checkbox.checked::after {
+    content: "✓";
+    color: white;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .todo-content { flex: 1; min-width: 0; }
+  .todo-text {
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.45;
+    word-wrap: break-word;
+  }
+  .todo-meta {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+  .todo-due-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .todo-due-tag.overdue { color: var(--danger); font-weight: 500; }
+  .todo-due-tag.today { color: #d97706; font-weight: 500; }
+  .todo-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  /* === Anotações === */
+  .note-input-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .note-date { flex: 0 0 160px; }
+  #noteTitleInput { flex: 1; }
+  #noteTextInput {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-family: inherit;
+    font-size: 14px;
+    resize: vertical;
+    min-height: 80px;
+    background: var(--surface);
+    color: var(--text);
+  }
+  #noteTextInput:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+  }
+  .note-tags-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+  .tags-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-right: 4px;
+  }
+  .tag-chips {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+  .tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px;
+    background: #ede9fe;
+    color: #5b21b6;
+    border-radius: 12px;
+    font-size: 12px;
+    cursor: default;
+  }
+  .tag-chip-remove {
+    cursor: pointer;
+    color: #7c3aed;
+    margin-left: 2px;
+    font-weight: 600;
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 14px;
+    line-height: 1;
+  }
+  .tag-input-small {
+    padding: 4px 10px;
+    font-size: 12px;
+    border-radius: 12px;
+    border: 1px dashed var(--border);
+    background: transparent;
+    width: 110px;
+    min-height: auto;
+  }
+  .tag-filter-chips {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+  .tag-filter-chip {
+    padding: 4px 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--text-muted);
+  }
+  .tag-filter-chip:hover { border-color: var(--text-muted); }
+  .tag-filter-chip.active {
+    background: #ede9fe;
+    border-color: #a78bfa;
+    color: #5b21b6;
+    font-weight: 500;
+  }
+
+  .note-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow);
+  }
+  .note-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .note-card-date {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .note-card-title {
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 4px;
+    color: var(--text);
+  }
+  .note-card-text {
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--text);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  .note-card-tags {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+  .note-card-photos {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .note-card-actions {
+    display: flex;
+    gap: 4px;
+  }
+
   /* Sync button */
   .sync-btn {
     display: inline-flex;
@@ -1005,16 +1320,23 @@
   <header>
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
       <div>
-        <h1>Tarefas Realizadas</h1>
-        <p class="subtitle">Registre suas tarefas diárias e gere relatórios em PDF</p>
+        <h1 id="appTitle">Tarefas</h1>
+        <p class="subtitle" id="appSubtitle">Registre suas tarefas diárias e gere relatórios em PDF</p>
       </div>
       <button id="syncStatusBtn" class="sync-btn" title="Configurar sincronização">
         <span class="sync-dot"></span>
         <span class="sync-label">Sync desativado</span>
       </button>
     </div>
+    <nav class="tabs">
+      <button class="tab active" data-tab="realizadas">Realizadas</button>
+      <button class="tab" data-tab="afazer">A Fazer <span class="tab-badge" id="badgeAfazer"></span></button>
+      <button class="tab" data-tab="anotacoes">Anotações</button>
+    </nav>
   </header>
 
+  <!-- ============ VIEW: REALIZADAS ============ -->
+  <section class="view view-realizadas active">
   <div class="stats">
     <div class="stat-card">
       <div class="stat-value" id="statTotal">0</div>
@@ -1066,6 +1388,71 @@
   </div>
 
   <div id="report"></div>
+  </section>
+
+  <!-- ============ VIEW: A FAZER ============ -->
+  <section class="view view-afazer">
+    <div class="card">
+      <div class="input-row">
+        <input type="text" id="todoInput" placeholder="O que você precisa fazer..." autocomplete="off">
+        <button id="todoAddBtn">Adicionar</button>
+      </div>
+      <div class="todo-detail-row">
+        <label class="todo-detail-label">Prazo:</label>
+        <input type="datetime-local" id="todoDueDate" class="todo-due">
+        <button class="secondary todo-clear-date" id="todoClearDate" type="button" title="Sem prazo">×</button>
+      </div>
+      <div class="category-chips" id="todoCategoryChips"></div>
+    </div>
+
+    <div class="toolbar">
+      <div class="filter-group">
+        <label class="todo-filter-label">
+          <input type="checkbox" id="todoShowDone"> Mostrar concluídas
+        </label>
+      </div>
+      <div class="spacer"></div>
+      <button class="secondary" id="todoPdfBtn">Exportar PDF</button>
+    </div>
+
+    <div id="todoList"></div>
+  </section>
+
+  <!-- ============ VIEW: ANOTAÇÕES ============ -->
+  <section class="view view-anotacoes">
+    <div class="card">
+      <div class="note-input-row">
+        <input type="date" id="noteDate" class="note-date">
+        <input type="text" id="noteTitleInput" placeholder="Título (opcional)" autocomplete="off">
+      </div>
+      <textarea id="noteTextInput" placeholder="Escreva sua anotação..." rows="4"></textarea>
+      <div class="note-tags-row">
+        <span class="tags-label">Tags:</span>
+        <div class="tag-chips" id="noteTagChips"></div>
+        <input type="text" id="noteTagInput" placeholder="+ nova tag" class="tag-input-small">
+      </div>
+      <div class="photo-row">
+        <input type="file" id="notePhotoCamera" accept="image/*" capture="environment" style="display:none">
+        <input type="file" id="notePhotoGallery" accept="image/*" multiple style="display:none">
+        <button class="photo-btn" id="noteBtnCamera" type="button">📷 Câmera</button>
+        <button class="photo-btn" id="noteBtnGallery" type="button">🖼 Galeria</button>
+        <div class="pending-photos" id="notePendingPhotos"></div>
+        <div style="flex:1"></div>
+        <button id="noteAddBtn">Salvar anotação</button>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="filter-group" style="flex:1">
+        <label>Filtrar por tag:</label>
+        <div class="tag-filter-chips" id="noteFilterChips"></div>
+      </div>
+      <div class="spacer"></div>
+      <button class="secondary" id="notePdfBtn">Exportar PDF</button>
+    </div>
+
+    <div id="noteList"></div>
+  </section>
 
   <footer class="app-footer">
     <span class="brand-mark">TC</span>
@@ -1252,6 +1639,10 @@
   const HISTORY_KEY = 'tarefas_historico_v1';
   const CATEGORIES_KEY = 'tarefas_categorias_v1';
   const SELECTED_CAT_KEY = 'tarefas_cat_selecionada_v1';
+  const TODOS_KEY = 'tarefas_todos_v1';
+  const NOTES_KEY = 'tarefas_notes_v1';
+  const TAGS_KEY = 'tarefas_tags_v1';
+  const CURRENT_TAB_KEY = 'tarefas_current_tab_v1';
 
   const DEFAULT_CATEGORIES = [
     { id: 'cat-1', name: 'Geral', color: '#6b7280', colorText: false },
@@ -1304,6 +1695,10 @@
   let history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '{}');
   let categories = JSON.parse(localStorage.getItem(CATEGORIES_KEY) || 'null') || DEFAULT_CATEGORIES;
   let selectedCategoryId = localStorage.getItem(SELECTED_CAT_KEY) || categories[0]?.id || null;
+  let todos = JSON.parse(localStorage.getItem(TODOS_KEY) || '[]');
+  let notes = JSON.parse(localStorage.getItem(NOTES_KEY) || '[]');
+  let tags = JSON.parse(localStorage.getItem(TAGS_KEY) || '[]'); // array of strings
+  let currentTab = localStorage.getItem(CURRENT_TAB_KEY) || 'realizadas';
 
   const taskDate = document.getElementById('taskDate');
   const taskInput = document.getElementById('taskInput');
@@ -1337,6 +1732,10 @@
     localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
     localStorage.setItem(CATEGORIES_KEY, JSON.stringify(categories));
     if (selectedCategoryId) localStorage.setItem(SELECTED_CAT_KEY, selectedCategoryId);
+    localStorage.setItem(TODOS_KEY, JSON.stringify(todos));
+    localStorage.setItem(NOTES_KEY, JSON.stringify(notes));
+    localStorage.setItem(TAGS_KEY, JSON.stringify(tags));
+    localStorage.setItem(CURRENT_TAB_KEY, currentTab);
   }
 
   function getCategory(id) {
@@ -2104,10 +2503,11 @@ ${groups.map(g => `
     <p class="tasks-prose">${g.items.map(t => {
       const cat = getCategory(t.categoryId);
       const marker = cat ? `<span class="cat-marker" style="--cat-color:${cat.color}"></span>` : '';
+      const sentenceStyle = (cat && cat.colorText) ? ` style="color:${cat.color};font-weight:500"` : '';
       // Ensure each task ends with a period
       let text = escapeHtml(t.text.trim());
       if (!/[.!?]$/.test(text)) text += '.';
-      return `<span class="task-sentence">${marker}${text}</span>`;
+      return `<span class="task-sentence"${sentenceStyle}>${marker}${text}</span>`;
     }).join(' ')}</p>
   </section>
 `).join('')}
@@ -2169,6 +2569,263 @@ ${usedCats.length > 0 ? `
     const months = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
     return `<span class="weekday">${weekdays[date.getDay()]}</span> · ${+d} de ${months[+m-1]} de ${y}`;
   }
+
+  // ===== Shared PDF preview infrastructure =====
+  const PDF_BASE_STYLES = `
+    @page {
+      size: A4;
+      margin: 18mm 16mm 22mm 16mm;
+      @bottom-center {
+        content: "Página " counter(page) " de " counter(pages);
+        font-family: 'Inter', -apple-system, sans-serif;
+        font-size: 9pt;
+        color: #9ca3af;
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #111827;
+      line-height: 1.5;
+      font-size: 10.5pt;
+      background: white;
+    }
+    .cover {
+      border-bottom: 2px solid #111827;
+      padding-bottom: 14pt;
+      margin-bottom: 20pt;
+    }
+    .cover h1 {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 26pt;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: #111827;
+      margin-bottom: 6pt;
+    }
+    .cover .subtitle {
+      font-size: 11pt;
+      color: #6b7280;
+      font-style: italic;
+    }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12pt;
+      margin-top: 14pt;
+      padding-top: 12pt;
+      border-top: 1px solid #e5e7eb;
+    }
+    .meta-item .label {
+      font-size: 8pt;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #9ca3af;
+      margin-bottom: 2pt;
+      font-weight: 600;
+    }
+    .meta-item .value {
+      font-size: 11pt;
+      color: #111827;
+      font-weight: 500;
+    }
+    .pdf-section {
+      margin-bottom: 14pt;
+      page-break-inside: avoid;
+    }
+    .pdf-section-header {
+      padding-bottom: 2pt;
+      margin-bottom: 6pt;
+      border-bottom: 1px solid #d1d5db;
+      font-family: 'Inter', sans-serif;
+      font-size: 11pt;
+      font-weight: 600;
+      color: #374151;
+    }
+    .pdf-section-header .muted {
+      color: #9ca3af;
+      font-weight: 400;
+      margin-right: 4pt;
+    }
+    .pdf-list-item {
+      padding: 5pt 0 5pt 14pt;
+      position: relative;
+      page-break-inside: avoid;
+      font-size: 10.5pt;
+    }
+    .pdf-list-item::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 10pt;
+      width: 5pt;
+      height: 5pt;
+      background: #9ca3af;
+      border-radius: 50%;
+    }
+    .pdf-list-item.has-cat::before {
+      background: var(--cat-color, #9ca3af);
+    }
+    .pdf-list-item .meta {
+      font-size: 9pt;
+      color: #6b7280;
+      margin-top: 2pt;
+    }
+    .pdf-list-item .meta .due {
+      font-weight: 500;
+    }
+    .pdf-list-item .meta .due.overdue { color: #dc2626; }
+    .pdf-list-item .meta .due.today { color: #d97706; }
+    .pdf-note {
+      page-break-inside: avoid;
+      margin-bottom: 14pt;
+      padding-bottom: 10pt;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .pdf-note-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 10pt;
+      color: #6b7280;
+      margin-bottom: 4pt;
+    }
+    .pdf-note-date {
+      font-weight: 500;
+      color: #374151;
+    }
+    .pdf-note-title {
+      font-family: Georgia, serif;
+      font-size: 13pt;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 4pt;
+    }
+    .pdf-note-text {
+      white-space: pre-wrap;
+      font-size: 10.5pt;
+      line-height: 1.55;
+      color: #1f2937;
+    }
+    .pdf-note-tags {
+      margin-top: 6pt;
+      font-size: 9pt;
+      color: #7c3aed;
+    }
+    .pdf-note-tag {
+      display: inline-block;
+      padding: 1pt 6pt;
+      background: #ede9fe;
+      border-radius: 8pt;
+      margin-right: 4pt;
+    }
+  `;
+
+  function openPdfPreview(bodyHtml) {
+    document.getElementById('pdfPreviewStyles').textContent = PDF_BASE_STYLES;
+    document.getElementById('pdfPreviewBody').innerHTML = bodyHtml;
+    document.getElementById('pdfPreview').classList.add('active');
+    document.body.classList.add('printing-mode');
+  }
+
+  // ===== PDF: A Fazer =====
+  function generateTodoPDF() {
+    if (todos.length === 0) { alert('Sem tarefas para exportar'); return; }
+    const generatedOn = new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const pending = todos.filter(t => !t.done);
+    const done = todos.filter(t => t.done);
+
+    const buckets = { overdue: [], today: [], upcoming: [], someday: [] };
+    pending.forEach(t => buckets[todoBucket(t)].push(t));
+    Object.values(buckets).forEach(arr => arr.sort((a,b) => (a.dueDate||'').localeCompare(b.dueDate||'')));
+    done.sort((a, b) => (b.doneAt || '').localeCompare(a.doneAt || ''));
+
+    const titles = { overdue: 'Atrasadas', today: 'Para hoje', upcoming: 'Próximas', someday: 'Sem data' };
+
+    function renderList(items, bucketName) {
+      return items.map(t => {
+        const cat = getCategory(t.categoryId);
+        const catStyle = cat ? `style="--cat-color:${cat.color}"` : '';
+        const catTag = cat ? `<span class="pdf-note-tag" style="background:${cat.color}1a;color:${cat.color}">${escapeHtml(cat.name)}</span>` : '';
+        const dueClass = bucketName === 'overdue' ? 'overdue' : bucketName === 'today' ? 'today' : '';
+        const due = t.dueDate ? `<span class="due ${dueClass}">⏰ ${formatDueDate(t.dueDate)}</span>` : '';
+        return `<div class="pdf-list-item ${cat ? 'has-cat' : ''}" ${catStyle}>
+          ${escapeHtml(t.text)}
+          ${(due || catTag) ? `<div class="meta">${due}${due && catTag ? ' · ' : ''}${catTag}</div>` : ''}
+        </div>`;
+      }).join('');
+    }
+
+    let body = `
+      <section class="cover">
+        <h1>Tarefas a Fazer</h1>
+        <div class="subtitle">Lista de pendências</div>
+        <div class="meta-grid">
+          <div class="meta-item"><div class="label">Pendentes</div><div class="value">${pending.length}</div></div>
+          <div class="meta-item"><div class="label">Concluídas</div><div class="value">${done.length}</div></div>
+          <div class="meta-item"><div class="label">Gerado em</div><div class="value">${escapeHtml(generatedOn)}</div></div>
+        </div>
+      </section>
+    `;
+
+    ['overdue', 'today', 'upcoming', 'someday'].forEach(b => {
+      if (buckets[b].length === 0) return;
+      body += `<section class="pdf-section">
+        <div class="pdf-section-header"><span class="muted">${buckets[b].length}</span>${titles[b]}</div>
+        ${renderList(buckets[b], b)}
+      </section>`;
+    });
+
+    if (done.length > 0) {
+      body += `<section class="pdf-section">
+        <div class="pdf-section-header"><span class="muted">${done.length}</span>Concluídas</div>
+        ${renderList(done, 'done')}
+      </section>`;
+    }
+    openPdfPreview(body);
+  }
+
+  // ===== PDF: Anotações =====
+  function generateNotesPDF() {
+    const filtered = activeNoteFilter ? notes.filter(n => (n.tags || []).includes(activeNoteFilter)) : notes;
+    if (filtered.length === 0) { alert('Sem anotações para exportar'); return; }
+    const sorted = filtered.slice().sort((a, b) => {
+      if (b.date !== a.date) return b.date.localeCompare(a.date);
+      return (b.createdAt || '').localeCompare(a.createdAt || '');
+    });
+    const generatedOn = new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const allTags = [...new Set(sorted.flatMap(n => n.tags || []))];
+
+    let body = `
+      <section class="cover">
+        <h1>Anotações</h1>
+        <div class="subtitle">${activeNoteFilter ? 'Tag: ' + escapeHtml(activeNoteFilter) : 'Todas as anotações'}</div>
+        <div class="meta-grid">
+          <div class="meta-item"><div class="label">Anotações</div><div class="value">${sorted.length}</div></div>
+          <div class="meta-item"><div class="label">Tags</div><div class="value">${allTags.length}</div></div>
+          <div class="meta-item"><div class="label">Gerado em</div><div class="value">${escapeHtml(generatedOn)}</div></div>
+        </div>
+      </section>
+    `;
+
+    sorted.forEach(n => {
+      const tagBadges = (n.tags || []).map(t => `<span class="pdf-note-tag">${escapeHtml(t)}</span>`).join('');
+      const title = n.title ? `<div class="pdf-note-title">${escapeHtml(n.title)}</div>` : '';
+      body += `<div class="pdf-note">
+        <div class="pdf-note-meta">
+          <span class="pdf-note-date">${formatDateBR(n.date)}</span>
+        </div>
+        ${title}
+        <div class="pdf-note-text">${escapeHtml(n.text)}</div>
+        ${tagBadges ? `<div class="pdf-note-tags">${tagBadges}</div>` : ''}
+      </div>`;
+    });
+
+    openPdfPreview(body);
+  }
+
+  document.getElementById('todoPdfBtn').addEventListener('click', generateTodoPDF);
+  document.getElementById('notePdfBtn').addEventListener('click', generateNotesPDF);
 
   // ===== Import Excel =====
   const importBtn = document.getElementById('importBtn');
@@ -2821,23 +3478,38 @@ ${usedCats.length > 0 ? `
   }
 
   function mergeRemoteIntoLocal(remote) {
-    // Deduplicate tasks by (date, text, id)
+    // Tasks
     const taskKey = t => `${t.date}|${(t.text || '').trim().toLowerCase()}`;
     const localKeys = new Set(tasks.map(taskKey));
-    const remoteKeys = new Set((remote.tasks || []).map(taskKey));
-    const merged = [...tasks];
     (remote.tasks || []).forEach(rt => {
-      if (!localKeys.has(taskKey(rt))) merged.push(rt);
+      if (!localKeys.has(taskKey(rt))) tasks.push(rt);
     });
-    tasks = merged;
 
-    // Merge history (take max counts)
+    // Todos (merge by id)
+    if (Array.isArray(remote.todos)) {
+      const todoIds = new Set(todos.map(t => t.id));
+      remote.todos.forEach(rt => { if (!todoIds.has(rt.id)) todos.push(rt); });
+    }
+
+    // Notes (merge by id)
+    if (Array.isArray(remote.notes)) {
+      const noteIds = new Set(notes.map(n => n.id));
+      remote.notes.forEach(rn => { if (!noteIds.has(rn.id)) notes.push(rn); });
+    }
+
+    // Tags (union)
+    if (Array.isArray(remote.tags)) {
+      const tagSet = new Set([...tags, ...remote.tags]);
+      tags = Array.from(tagSet);
+    }
+
+    // History
     const remoteHistory = remote.history || {};
     Object.entries(remoteHistory).forEach(([text, count]) => {
       history[text] = Math.max(history[text] || 0, count);
     });
 
-    // Merge categories by id
+    // Categories
     if (Array.isArray(remote.categories)) {
       const catIds = new Set(categories.map(c => c.id));
       remote.categories.forEach(rc => {
@@ -2853,6 +3525,9 @@ ${usedCats.length > 0 ? `
     if (Array.isArray(remote.tasks)) tasks = remote.tasks;
     if (remote.history && typeof remote.history === 'object') history = remote.history;
     if (Array.isArray(remote.categories) && remote.categories.length > 0) categories = remote.categories;
+    if (Array.isArray(remote.todos)) todos = remote.todos;
+    if (Array.isArray(remote.notes)) notes = remote.notes;
+    if (Array.isArray(remote.tags)) tags = remote.tags;
     save();
     render();
   }
@@ -2866,7 +3541,7 @@ ${usedCats.length > 0 ? `
         const updatedAt = Date.now();
         lastRemoteUpdatedAt = updatedAt;
         await firestoreDb.collection(FIREBASE_DOC_COLLECTION).doc(currentSyncCode).set({
-          tasks, history, categories, updatedAt
+          tasks, history, categories, todos, notes, tags, updatedAt
         });
         setSyncStatus('connected', 'Sync ativo · ' + currentSyncCode);
       } catch (e) {
@@ -2904,6 +3579,479 @@ ${usedCats.length > 0 ? `
     }
   }
 
+  // ===================================================================
+  // ===== TABS =====
+  // ===================================================================
+  const tabs = document.querySelectorAll('.tab');
+  const views = document.querySelectorAll('.view');
+  const TAB_META = {
+    realizadas: { title: 'Tarefas', subtitle: 'Registre suas tarefas diárias e gere relatórios em PDF' },
+    afazer:     { title: 'A Fazer', subtitle: 'Tarefas e compromissos pendentes' },
+    anotacoes:  { title: 'Anotações', subtitle: 'Suas anotações pessoais cronológicas, organizadas por tags' }
+  };
+
+  function switchTab(name) {
+    currentTab = name;
+    tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+    views.forEach(v => v.classList.toggle('active', v.classList.contains('view-' + name)));
+    const meta = TAB_META[name] || TAB_META.realizadas;
+    document.getElementById('appTitle').textContent = meta.title;
+    document.getElementById('appSubtitle').textContent = meta.subtitle;
+    localStorage.setItem(CURRENT_TAB_KEY, name);
+    if (name === 'afazer') renderTodos();
+    if (name === 'anotacoes') renderNotes();
+  }
+
+  tabs.forEach(t => t.addEventListener('click', () => switchTab(t.dataset.tab)));
+
+  function updateBadges() {
+    const overdueCount = todos.filter(t => !t.done && t.dueDate && t.dueDate < new Date().toISOString().slice(0, 16)).length;
+    const pendingCount = todos.filter(t => !t.done).length;
+    const badge = document.getElementById('badgeAfazer');
+    if (pendingCount > 0) {
+      badge.textContent = pendingCount;
+      badge.classList.add('has-content');
+      badge.classList.toggle('overdue', overdueCount > 0);
+    } else {
+      badge.classList.remove('has-content', 'overdue');
+    }
+  }
+
+  // ===================================================================
+  // ===== A FAZER =====
+  // ===================================================================
+  const todoInput = document.getElementById('todoInput');
+  const todoDueDate = document.getElementById('todoDueDate');
+  const todoClearDate = document.getElementById('todoClearDate');
+  const todoAddBtn = document.getElementById('todoAddBtn');
+  const todoList = document.getElementById('todoList');
+  const todoShowDone = document.getElementById('todoShowDone');
+  const todoCategoryChips = document.getElementById('todoCategoryChips');
+  let todoSelectedCategoryId = null;
+
+  function renderTodoCategoryChips() {
+    todoCategoryChips.innerHTML = '<span class="label">Categoria:</span>' +
+      categories.map(c => `
+        <div class="cat-chip ${c.id === todoSelectedCategoryId ? 'active' : ''}" data-cat="${c.id}">
+          <span class="cat-dot" style="background:${c.color}"></span>
+          <span>${escapeHtml(c.name)}</span>
+        </div>
+      `).join('') +
+      `<div class="cat-chip ${!todoSelectedCategoryId ? 'active' : ''}" data-cat="">
+        <span class="cat-dot" style="background:#e5e7eb;border:1px solid #d1d5db"></span>
+        <span>Sem categoria</span>
+      </div>`;
+    todoCategoryChips.querySelectorAll('.cat-chip').forEach(el => {
+      el.addEventListener('click', () => {
+        todoSelectedCategoryId = el.dataset.cat || null;
+        renderTodoCategoryChips();
+      });
+    });
+  }
+
+  todoClearDate.addEventListener('click', () => { todoDueDate.value = ''; });
+
+  todoAddBtn.addEventListener('click', addTodo);
+  todoInput.addEventListener('keydown', e => { if (e.key === 'Enter') addTodo(); });
+
+  function addTodo() {
+    const text = todoInput.value.trim();
+    if (!text) return;
+    todos.push({
+      id: Date.now() + Math.random(),
+      text,
+      dueDate: todoDueDate.value || null, // "YYYY-MM-DDTHH:mm" or null
+      categoryId: todoSelectedCategoryId,
+      done: false,
+      createdAt: new Date().toISOString(),
+      doneAt: null,
+      notified: false
+    });
+    todoInput.value = '';
+    todoDueDate.value = '';
+    save();
+    renderTodos();
+    updateBadges();
+  }
+
+  function toggleTodoDone(id) {
+    const todo = todos.find(t => t.id === id);
+    if (!todo) return;
+    todo.done = !todo.done;
+    todo.doneAt = todo.done ? new Date().toISOString() : null;
+    // If marked done, move to "Realizadas" with today's date
+    if (todo.done) {
+      const today = todayISO();
+      const text = todo.text;
+      tasks.push({
+        id: Date.now() + Math.random(),
+        date: today,
+        text,
+        categoryId: todo.categoryId,
+        photos: []
+      });
+      history[text] = (history[text] || 0) + 1;
+      // Remove from todos after a small delay so user sees the check animation, then refresh
+      setTimeout(() => {
+        todos = todos.filter(t => t.id !== id);
+        save();
+        renderTodos();
+        updateBadges();
+        if (currentTab === 'realizadas') render();
+      }, 400);
+    }
+    save();
+    renderTodos();
+    updateBadges();
+  }
+
+  function deleteTodo(id) {
+    if (!confirm('Excluir esta tarefa?')) return;
+    todos = todos.filter(t => t.id !== id);
+    save();
+    renderTodos();
+    updateBadges();
+  }
+
+  function editTodo(id) {
+    const todo = todos.find(t => t.id === id);
+    if (!todo) return;
+    const newText = prompt('Editar tarefa:', todo.text);
+    if (newText === null) return;
+    if (!newText.trim()) return;
+    todo.text = newText.trim();
+    save();
+    renderTodos();
+  }
+
+  function todoBucket(t) {
+    if (t.done) return 'done';
+    if (!t.dueDate) return 'someday';
+    const now = new Date();
+    const due = new Date(t.dueDate);
+    const today0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const dueDate0 = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+    if (due < now) return 'overdue';
+    if (dueDate0.getTime() === today0.getTime()) return 'today';
+    return 'upcoming';
+  }
+
+  function formatDueDate(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mi = String(d.getMinutes()).padStart(2, '0');
+    return `${dd}/${mm} às ${hh}:${mi}`;
+  }
+
+  function renderTodos() {
+    renderTodoCategoryChips();
+    const showDone = todoShowDone.checked;
+    const filtered = todos.filter(t => showDone ? true : !t.done);
+    const buckets = { overdue: [], today: [], upcoming: [], someday: [], done: [] };
+    filtered.forEach(t => buckets[todoBucket(t)].push(t));
+
+    // Sort within each bucket
+    buckets.overdue.sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || ''));
+    buckets.today.sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || ''));
+    buckets.upcoming.sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || ''));
+    buckets.someday.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+    buckets.done.sort((a, b) => (b.doneAt || '').localeCompare(a.doneAt || ''));
+
+    const sectionOrder = ['overdue', 'today', 'upcoming', 'someday'];
+    if (showDone) sectionOrder.push('done');
+    const sectionTitles = {
+      overdue: '⚠ Atrasadas',
+      today: '🟡 Para hoje',
+      upcoming: '🔵 Próximas',
+      someday: '⚪ Sem data',
+      done: '✓ Concluídas'
+    };
+
+    let html = '';
+    sectionOrder.forEach(s => {
+      const items = buckets[s];
+      if (items.length === 0) return;
+      html += `<div class="todo-section ${s}">
+        <div class="todo-section-header">${sectionTitles[s]} <span style="opacity:0.7;font-weight:400">· ${items.length}</span></div>`;
+      items.forEach(t => {
+        const cat = getCategory(t.categoryId);
+        const catTag = cat ? `<span class="task-cat-label" style="background:${cat.color}20;color:${cat.color}"><span class="cat-dot" style="background:${cat.color}"></span>${escapeHtml(cat.name)}</span>` : '';
+        const dueTag = t.dueDate ? `<span class="todo-due-tag ${s === 'overdue' ? 'overdue' : s === 'today' ? 'today' : ''}">⏰ ${formatDueDate(t.dueDate)}</span>` : '';
+        html += `
+          <div class="todo-item ${t.done ? 'done' : ''}">
+            <div class="todo-checkbox ${t.done ? 'checked' : ''}" onclick="toggleTodoDone(${t.id})"></div>
+            <div class="todo-content">
+              <div class="todo-text">${escapeHtml(t.text)}</div>
+              <div class="todo-meta">${catTag}${dueTag}</div>
+            </div>
+            <div class="todo-actions">
+              <button class="icon-btn" onclick="editTodo(${t.id})" title="Editar">✏️</button>
+              <button class="icon-btn delete" onclick="deleteTodo(${t.id})" title="Excluir">🗑️</button>
+            </div>
+          </div>`;
+      });
+      html += '</div>';
+    });
+
+    if (!html) {
+      html = `<div class="card empty">
+        <div class="empty-icon">✅</div>
+        <div>Nada pendente. Tudo em ordem!</div>
+      </div>`;
+    }
+    todoList.innerHTML = html;
+  }
+
+  todoShowDone.addEventListener('change', renderTodos);
+
+  // ===================================================================
+  // ===== ANOTAÇÕES =====
+  // ===================================================================
+  const noteDate = document.getElementById('noteDate');
+  const noteTitleInput = document.getElementById('noteTitleInput');
+  const noteTextInput = document.getElementById('noteTextInput');
+  const noteTagInput = document.getElementById('noteTagInput');
+  const noteTagChips = document.getElementById('noteTagChips');
+  const noteAddBtn = document.getElementById('noteAddBtn');
+  const noteList = document.getElementById('noteList');
+  const noteFilterChips = document.getElementById('noteFilterChips');
+  const notePendingPhotos = document.getElementById('notePendingPhotos');
+
+  let pendingNoteTags = [];
+  let pendingNotePhotos = [];
+  let activeNoteFilter = null; // tag name or null
+
+  noteDate.value = todayISO();
+
+  function renderNoteTagChips() {
+    noteTagChips.innerHTML = pendingNoteTags.map((tag, i) => `
+      <span class="tag-chip">${escapeHtml(tag)}<button type="button" class="tag-chip-remove" data-i="${i}">×</button></span>
+    `).join('');
+    noteTagChips.querySelectorAll('.tag-chip-remove').forEach(b => {
+      b.addEventListener('click', () => {
+        pendingNoteTags.splice(+b.dataset.i, 1);
+        renderNoteTagChips();
+      });
+    });
+  }
+
+  noteTagInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      const tag = noteTagInput.value.trim().replace(/,$/,'');
+      if (tag && !pendingNoteTags.includes(tag)) {
+        pendingNoteTags.push(tag);
+        renderNoteTagChips();
+      }
+      noteTagInput.value = '';
+    }
+  });
+
+  function renderNotePendingPhotos() {
+    if (pendingNotePhotos.length === 0) { notePendingPhotos.innerHTML = ''; return; }
+    notePendingPhotos.innerHTML = pendingNotePhotos.map((id, i) => {
+      const url = photoCache[id] || '';
+      return `<div class="pending-photo"><img src="${url}" alt="Foto"><button class="pending-photo-remove" data-i="${i}" type="button">×</button></div>`;
+    }).join('');
+    notePendingPhotos.querySelectorAll('.pending-photo-remove').forEach(b => {
+      b.addEventListener('click', async () => {
+        const idx = +b.dataset.i;
+        const pid = pendingNotePhotos[idx];
+        await deletePhotoFromStorage(pid);
+        pendingNotePhotos.splice(idx, 1);
+        renderNotePendingPhotos();
+      });
+    });
+  }
+
+  async function handleNotePhotoFiles(files) {
+    if (!firestoreDb) {
+      alert('Para adicionar fotos, conecte a sincronização primeiro.');
+      return;
+    }
+    for (const f of Array.from(files || [])) {
+      try {
+        const id = await uploadPhoto(f);
+        pendingNotePhotos.push(id);
+        renderNotePendingPhotos();
+      } catch (e) {
+        alert('Erro: ' + (e.message || e));
+      }
+    }
+  }
+
+  document.getElementById('noteBtnCamera').addEventListener('click', () => document.getElementById('notePhotoCamera').click());
+  document.getElementById('noteBtnGallery').addEventListener('click', () => document.getElementById('notePhotoGallery').click());
+  document.getElementById('notePhotoCamera').addEventListener('change', e => { handleNotePhotoFiles(e.target.files); e.target.value = ''; });
+  document.getElementById('notePhotoGallery').addEventListener('change', e => { handleNotePhotoFiles(e.target.files); e.target.value = ''; });
+
+  noteAddBtn.addEventListener('click', () => {
+    const text = noteTextInput.value.trim();
+    if (!text) { alert('Escreva alguma coisa antes de salvar.'); return; }
+    const date = noteDate.value || todayISO();
+    const note = {
+      id: Date.now() + Math.random(),
+      date,
+      title: noteTitleInput.value.trim() || null,
+      text,
+      tags: pendingNoteTags.slice(),
+      photos: pendingNotePhotos.slice(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    notes.push(note);
+    // Add new tags to global list
+    pendingNoteTags.forEach(t => { if (!tags.includes(t)) tags.push(t); });
+    pendingNoteTags = [];
+    pendingNotePhotos = [];
+    noteTitleInput.value = '';
+    noteTextInput.value = '';
+    noteDate.value = todayISO();
+    renderNoteTagChips();
+    renderNotePendingPhotos();
+    save();
+    renderNotes();
+  });
+
+  function deleteNote(id) {
+    if (!confirm('Excluir esta anotação?')) return;
+    const note = notes.find(n => n.id === id);
+    if (note && Array.isArray(note.photos)) {
+      note.photos.forEach(p => deletePhotoFromStorage(p));
+    }
+    notes = notes.filter(n => n.id !== id);
+    save();
+    renderNotes();
+  }
+
+  let editingNoteId = null;
+  function editNote(id) {
+    const note = notes.find(n => n.id === id);
+    if (!note) return;
+    const newText = prompt('Editar anotação:', note.text);
+    if (newText === null) return;
+    if (!newText.trim()) return;
+    note.text = newText.trim();
+    note.updatedAt = new Date().toISOString();
+    save();
+    renderNotes();
+  }
+
+  function changeNoteDate(id) {
+    const note = notes.find(n => n.id === id);
+    if (!note) return;
+    const newDate = prompt('Nova data (formato AAAA-MM-DD):', note.date);
+    if (!newDate || !/^\d{4}-\d{2}-\d{2}$/.test(newDate)) return;
+    note.date = newDate;
+    note.updatedAt = new Date().toISOString();
+    save();
+    renderNotes();
+  }
+
+  function renderNoteFilterChips() {
+    const usedTags = [...new Set(notes.flatMap(n => n.tags || []))];
+    noteFilterChips.innerHTML = `
+      <span class="tag-filter-chip ${!activeNoteFilter ? 'active' : ''}" data-tag="">Todas</span>
+      ${usedTags.map(t => `<span class="tag-filter-chip ${activeNoteFilter === t ? 'active' : ''}" data-tag="${escapeHtml(t)}">${escapeHtml(t)}</span>`).join('')}
+    `;
+    noteFilterChips.querySelectorAll('.tag-filter-chip').forEach(el => {
+      el.addEventListener('click', () => {
+        activeNoteFilter = el.dataset.tag || null;
+        renderNotes();
+      });
+    });
+  }
+
+  function renderNotes() {
+    renderNoteFilterChips();
+    let filtered = notes.slice();
+    if (activeNoteFilter) {
+      filtered = filtered.filter(n => (n.tags || []).includes(activeNoteFilter));
+    }
+    // Sort chronological (most recent first by date, then by createdAt)
+    filtered.sort((a, b) => {
+      if (b.date !== a.date) return b.date.localeCompare(a.date);
+      return (b.createdAt || '').localeCompare(a.createdAt || '');
+    });
+
+    if (filtered.length === 0) {
+      noteList.innerHTML = `<div class="card empty">
+        <div class="empty-icon">📝</div>
+        <div>${activeNoteFilter ? 'Nenhuma anotação com essa tag.' : 'Nenhuma anotação ainda.'}</div>
+      </div>`;
+      return;
+    }
+
+    noteList.innerHTML = filtered.map(n => {
+      const photos = Array.isArray(n.photos) ? n.photos : [];
+      const photoStrip = photos.length > 0 ? `
+        <div class="note-card-photos">
+          ${photos.map((p, i) => {
+            const url = getPhotoDisplayUrl(p);
+            if (!url) return `<div class="task-photo-thumb" style="background:#e5e7eb"></div>`;
+            return `<img src="${escapeHtml(url)}" class="task-photo-thumb" onclick="viewNotePhoto(${n.id}, ${i})" alt="Foto">`;
+          }).join('')}
+        </div>` : '';
+      const tagBadges = (n.tags || []).map(t => `<span class="tag-chip">${escapeHtml(t)}</span>`).join('');
+      const title = n.title ? `<div class="note-card-title">${escapeHtml(n.title)}</div>` : '';
+      return `<div class="note-card">
+        <div class="note-card-header">
+          <div>
+            <div class="note-card-date" onclick="changeNoteDate(${n.id})" style="cursor:pointer" title="Clique para editar data">${formatDateBR(n.date)}</div>
+            ${title}
+          </div>
+          <div class="note-card-actions">
+            <button class="icon-btn" onclick="editNote(${n.id})" title="Editar">✏️</button>
+            <button class="icon-btn delete" onclick="deleteNote(${n.id})" title="Excluir">🗑️</button>
+          </div>
+        </div>
+        <div class="note-card-text">${escapeHtml(n.text)}</div>
+        ${tagBadges ? `<div class="note-card-tags">${tagBadges}</div>` : ''}
+        ${photoStrip}
+      </div>`;
+    }).join('');
+  }
+
+  function viewNotePhoto(noteId, photoIndex) {
+    const note = notes.find(n => n.id === noteId || n.id === +noteId);
+    if (!note || !note.photos) return;
+    viewerPhotos = note.photos;
+    viewerIndex = photoIndex || 0;
+    renderPhotoViewer();
+    document.getElementById('photoViewer').classList.add('active');
+  }
+
+  // ===================================================================
+  // ===== NOTIFICAÇÕES (visual + Notification API) =====
+  // ===================================================================
+  function checkOverdueOnLoad() {
+    const now = new Date().toISOString().slice(0, 16);
+    const overdue = todos.filter(t => !t.done && t.dueDate && t.dueDate < now);
+    if (overdue.length > 0) {
+      // Visual reminder in the app — handled by badge + tab indicator
+      // Try Notification API for desktop
+      if ('Notification' in window && Notification.permission === 'granted') {
+        try {
+          new Notification(`${overdue.length} tarefa${overdue.length > 1 ? 's' : ''} atrasada${overdue.length > 1 ? 's' : ''}`, {
+            body: overdue.slice(0, 3).map(t => `· ${t.text}`).join('\n'),
+            icon: 'icon-192.png',
+            badge: 'icon-192.png'
+          });
+        } catch (e) {}
+      }
+    }
+  }
+
+  function requestNotificationPermissionOnce() {
+    if ('Notification' in window && Notification.permission === 'default') {
+      // Only ask after first todo is added
+      Notification.requestPermission();
+    }
+  }
+
   // ===== Service Worker (PWA offline support) =====
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -2921,9 +4069,19 @@ ${usedCats.length > 0 ? `
   window.viewPhoto = viewPhoto;
   window.closePhotoViewer = closePhotoViewer;
   window.photoViewerNav = photoViewerNav;
+  window.toggleTodoDone = toggleTodoDone;
+  window.deleteTodo = deleteTodo;
+  window.editTodo = editTodo;
+  window.deleteNote = deleteNote;
+  window.editNote = editNote;
+  window.changeNoteDate = changeNoteDate;
+  window.viewNotePhoto = viewNotePhoto;
 
   render();
+  updateBadges();
+  switchTab(currentTab);
   autoConnectSync();
+  setTimeout(checkOverdueOnLoad, 1500);
 </script>
 </body>
 </html>
