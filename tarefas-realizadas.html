@@ -1216,9 +1216,8 @@
     background: #e5e7eb;
     z-index: 9999;
     overflow-y: auto;
-    flex-direction: column;
   }
-  #pdfPreview.active { display: flex; }
+  #pdfPreview.active { display: block; }
 
   .pdf-preview-toolbar {
     position: sticky;
@@ -1268,11 +1267,12 @@
   .pdf-preview-body {
     background: white;
     max-width: 210mm;
-    width: 100%;
+    width: calc(100% - 48px);
     margin: 24px auto;
     padding: 18mm 16mm;
-    min-height: 297mm;
     box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+    height: auto;
+    overflow: visible;
   }
 
   /* When printing, hide the main app and toolbar, show only the report content */
@@ -2388,14 +2388,12 @@
   .day {
     margin-bottom: 10pt;
     page-break-inside: avoid;
-    background: white;
   }
   .day-header {
     text-align: left;
     padding-bottom: 2pt;
     margin-bottom: 4pt;
     border-bottom: 1px solid #d1d5db;
-    background: white;
   }
   .day-title {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
