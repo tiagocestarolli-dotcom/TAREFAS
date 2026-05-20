@@ -393,6 +393,22 @@
     background: #fee2e2;
     color: var(--danger);
   }
+  .icon-btn.move {
+    font-size: 15px;
+    font-weight: 600;
+    color: #9ca3af;
+    padding: 4px 7px;
+  }
+  .icon-btn.move:hover {
+    background: #dbeafe;
+    color: var(--accent);
+  }
+  .icon-btn.move.disabled,
+  .icon-btn.move:disabled {
+    opacity: 0.25;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
 
   .empty {
     text-align: center;
@@ -1357,6 +1373,29 @@
     render();
   }
 
+  function moveTask(id, direction) {
+    // direction: -1 para subir, +1 para descer (dentro do mesmo dia)
+    const idx = tasks.findIndex(t => t.id === id);
+    if (idx < 0) return;
+    const task = tasks[idx];
+    let swapIdx = -1;
+    if (direction < 0) {
+      // procura a tarefa anterior do mesmo dia
+      for (let i = idx - 1; i >= 0; i--) {
+        if (tasks[i].date === task.date) { swapIdx = i; break; }
+      }
+    } else {
+      // procura a próxima tarefa do mesmo dia
+      for (let i = idx + 1; i < tasks.length; i++) {
+        if (tasks[i].date === task.date) { swapIdx = i; break; }
+      }
+    }
+    if (swapIdx < 0) return; // já está no topo/fundo do dia
+    [tasks[idx], tasks[swapIdx]] = [tasks[swapIdx], tasks[idx]];
+    save();
+    render();
+  }
+
   let editingTaskId = null;
   let editingPhotos = []; // working copy of task.photos in the modal
 
@@ -1544,7 +1583,7 @@
           <div class="day-count">${g.items.length} ${g.items.length === 1 ? 'tarefa' : 'tarefas'}</div>
         </div>
         <ul class="task-list">
-          ${g.items.map(t => {
+          ${g.items.map((t, i) => {
             const cat = getCategory(t.categoryId);
             const color = cat ? cat.color : 'transparent';
             const catLabel = cat ? `<span class="task-cat-label" style="background:${cat.color}20;color:${cat.color}"><span class="cat-dot" style="background:${cat.color}"></span>${escapeHtml(cat.name)}</span>` : '';
@@ -1552,17 +1591,21 @@
             const photos = Array.isArray(t.photos) ? t.photos : [];
             const photoStrip = photos.length > 0 ? `
               <div class="task-photos">
-                ${photos.map((p, i) => {
+                ${photos.map((p, idx) => {
                   const url = getPhotoDisplayUrl(p);
                   if (!url) return `<div class="task-photo-thumb" style="background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:10px;color:#9ca3af">…</div>`;
-                  return `<img src="${escapeHtml(url)}" class="task-photo-thumb" onclick="viewPhoto(${t.id}, ${i})" alt="Foto da tarefa">`;
+                  return `<img src="${escapeHtml(url)}" class="task-photo-thumb" onclick="viewPhoto(${t.id}, ${idx})" alt="Foto da tarefa">`;
                 }).join('')}
               </div>
             ` : '';
+            const isFirst = i === 0;
+            const isLast = i === g.items.length - 1;
             return `
               <li class="task-item" style="border-left-color:${color}">
                 <div class="task-text" style="${textStyle}">${catLabel}${escapeHtml(t.text)}${photoStrip}</div>
                 <div class="task-actions">
+                  <button class="icon-btn move ${isFirst ? 'disabled' : ''}" ${isFirst ? 'disabled' : `onclick="moveTask(${t.id}, -1)"`} title="Mover para cima">↑</button>
+                  <button class="icon-btn move ${isLast ? 'disabled' : ''}" ${isLast ? 'disabled' : `onclick="moveTask(${t.id}, 1)"`} title="Mover para baixo">↓</button>
                   <button class="icon-btn" onclick="editTask(${t.id})" title="Editar">✏️</button>
                   <button class="icon-btn delete" onclick="deleteTask(${t.id})" title="Excluir">🗑️</button>
                 </div>
@@ -2873,6 +2916,7 @@ ${usedCats.length > 0 ? `
   // Expose for inline handlers
   window.deleteTask = deleteTask;
   window.editTask = editTask;
+  window.moveTask = moveTask;
   window.closePdfPreview = closePdfPreview;
   window.viewPhoto = viewPhoto;
   window.closePhotoViewer = closePhotoViewer;
