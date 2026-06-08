@@ -3118,6 +3118,18 @@ ${usedCats.length > 0 ? `
   const SYNC_CODE_KEY = 'tarefas_sync_code';
   const FIREBASE_DOC_COLLECTION = 'tarefas';
 
+  // Config Firebase embutido — não é segredo (a segurança vem das regras do
+  // Firestore + do código de sync). Assim o usuário nunca precisa colar isto:
+  // basta digitar o código de sync.
+  const EMBEDDED_FIREBASE_CONFIG = {
+    apiKey: "AIzaSyA0RF8AxGeA7RtIRAiTA3yhFQ3iJ7-zP3o",
+    authDomain: "tarefas-bbb18.firebaseapp.com",
+    projectId: "tarefas-bbb18",
+    storageBucket: "tarefas-bbb18.firebasestorage.app",
+    messagingSenderId: "834653304304",
+    appId: "1:834653304304:web:8f33e47bae609a22581935"
+  };
+
   let firebaseApp = null;
   let firestoreDb = null;
   let firestoreUnsub = null;
@@ -3180,7 +3192,10 @@ ${usedCats.length > 0 ? `
   function openSyncModal() {
     const savedConfig = localStorage.getItem(SYNC_CONFIG_KEY);
     const savedCode = localStorage.getItem(SYNC_CODE_KEY);
+    // Pré-preenche o config: o salvo, ou o embutido. Assim o usuário só
+    // precisa digitar/conferir o código de sync e clicar em Conectar.
     if (savedConfig) syncConfigInput.value = savedConfig;
+    else if (EMBEDDED_FIREBASE_CONFIG) syncConfigInput.value = JSON.stringify(EMBEDDED_FIREBASE_CONFIG, null, 2);
     if (savedCode) syncCodeInput.value = savedCode;
     syncDisconnect.style.display = firebaseApp ? 'inline-block' : 'none';
     syncStatusMsg.style.display = 'none';
@@ -3560,20 +3575,23 @@ ${usedCats.length > 0 ? `
     if (firestoreDb && !applyingRemote) pushToFirebase();
   };
 
-  // Auto-connect on load if config exists
+  // Auto-connect on load. Usa o config salvo ou, na falta dele, o embutido —
+  // então basta ter um código de sync salvo para reconectar sozinho.
   function autoConnectSync() {
     const savedConfig = localStorage.getItem(SYNC_CONFIG_KEY);
     const savedCode = localStorage.getItem(SYNC_CODE_KEY);
-    if (savedConfig && savedCode) {
-      try {
-        const config = JSON.parse(savedConfig);
-        connectFirebase(config, savedCode).catch(err => {
-          console.error('Auto-sync failed:', err);
-          setSyncStatus('error', 'Reconectar');
-        });
-      } catch (e) {
-        console.error('Invalid saved config:', e);
-      }
+    if (!savedCode) return;
+    let config = null;
+    if (savedConfig) {
+      try { config = JSON.parse(savedConfig); }
+      catch (e) { console.error('Invalid saved config:', e); }
+    }
+    if (!config) config = EMBEDDED_FIREBASE_CONFIG;
+    if (config) {
+      connectFirebase(config, savedCode).catch(err => {
+        console.error('Auto-sync failed:', err);
+        setSyncStatus('error', 'Reconectar');
+      });
     }
   }
 
