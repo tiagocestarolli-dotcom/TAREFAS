@@ -1208,6 +1208,63 @@
     input, select { min-height: 38px; font-size: 16px; } /* 16px prevents iOS zoom */
   }
 
+
+  /* === v12: indicador de anotação no dia === */
+  .day-header-right { display: flex; align-items: center; gap: 8px; }
+  .day-notes-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 12px; font-weight: 500; line-height: 1;
+    padding: 4px 10px; border-radius: 10px;
+    background: #ede9fe; color: #5b21b6; border: 1px solid #ddd6fe;
+    cursor: pointer; min-height: 0; transition: background .15s;
+  }
+  .day-notes-badge:hover { background: #ddd6fe; }
+  .tag-filter-chip.date-filter { background: #eff6ff; border-color: #93c5fd; color: #1d4ed8; font-weight: 500; }
+
+  /* === v12: modal grande de edição de anotação === */
+  .modal.modal-note {
+    max-width: 760px; width: 94%;
+    max-height: calc(100dvh - 40px);
+    display: flex; flex-direction: column;
+    padding: 20px 22px;
+  }
+  .modal-note-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+  .modal-note-head h2 { margin: 0; }
+  .modal-note-hint { font-size: 12px; color: var(--text-muted); }
+  .modal-note-fields { display: flex; gap: 8px; margin-bottom: 10px; }
+  .modal-note-fields input[type="date"] { flex: 0 0 165px; }
+  .modal-note-fields input[type="text"] { flex: 1; min-width: 0; }
+  #editNoteText {
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 260px;
+    height: 52vh;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-family: inherit; font-size: 15px; line-height: 1.55;
+    color: var(--text); background: var(--surface);
+    resize: vertical; overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  #editNoteText:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+  .modal-note-photos { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
+  .modal-note .modal-actions { align-items: center; margin-top: 14px; }
+  .modal-note-count { margin-right: auto; font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .note-card-text.editable { cursor: text; }
+
+  @media (max-width: 600px) {
+    #editNoteModal { align-items: stretch; }
+    .modal.modal-note {
+      width: 100%; max-width: none; max-height: none; height: 100%;
+      border-radius: 0; padding: 14px 14px calc(12px + env(safe-area-inset-bottom, 0px));
+    }
+    .modal-note-hint { display: none; }
+    .modal-note-fields { flex-direction: column; }
+    .modal-note-fields input[type="date"] { flex: none; }
+    #editNoteText { height: auto; min-height: 0; font-size: 16px; resize: none; }
+  }
+
   /* PDF Preview Overlay */
   #pdfPreview {
     display: none;
@@ -1269,7 +1326,7 @@
     max-width: 210mm;
     width: calc(100% - 48px);
     margin: 24px auto;
-    padding: 18mm 16mm;
+    padding: 14mm 14mm 16mm;
     box-shadow: 0 4px 24px rgba(0,0,0,0.15);
     height: auto;
     overflow: visible;
@@ -1282,6 +1339,7 @@
       -webkit-print-color-adjust: economy !important;
       print-color-adjust: economy !important;
     }
+    .pdf-preview-body .rpt { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     body.printing-mode > *:not(#pdfPreview) { display: none !important; }
     body.printing-mode #pdfPreview {
       display: block !important;
@@ -1299,17 +1357,15 @@
       width: auto !important;
       min-height: 0 !important;
     }
-    /* Force any background to be white/transparent during print */
-    .pdf-preview-body *,
-    .pdf-preview-body section,
-    .pdf-preview-body .day,
-    .pdf-preview-body .day-header {
-      background: transparent !important;
-    }
     @page {
       size: A4;
-      margin: 18mm 16mm 22mm 16mm;
-      background: white;
+      margin: 14mm 14mm 16mm 14mm;
+      @bottom-right {
+        content: "TC Development  ·  " counter(page) " / " counter(pages);
+        font-family: -apple-system, 'Inter', sans-serif;
+        font-size: 7.5pt;
+        color: #9ca3af;
+      }
     }
   }
 </style>
@@ -1525,7 +1581,7 @@
     </div>
   </div>
   <div class="pdf-preview-hint">
-    Use <strong>Ctrl+P</strong> (ou <strong>Cmd+P</strong> no Mac) ou clique no botão acima. No diálogo de impressão, escolha <strong>"Salvar como PDF"</strong> como destino.
+    No diálogo de impressão, escolha <strong>"Salvar como PDF"</strong> e desmarque <strong>"Cabeçalhos e rodapés"</strong> para um resultado limpo.
   </div>
   <style id="pdfPreviewStyles"></style>
   <div id="pdfPreviewBody" class="pdf-preview-body"></div>
@@ -1573,6 +1629,37 @@
     <div class="modal-actions">
       <button class="secondary" id="editTaskCancel">Cancelar</button>
       <button id="editTaskSave">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="editNoteModal">
+  <div class="modal modal-note" role="dialog" aria-label="Editar anotação">
+    <div class="modal-note-head">
+      <h2>Editar anotação</h2>
+      <span class="modal-note-hint">⌘/Ctrl + Enter salva · Esc cancela</span>
+    </div>
+    <div class="modal-note-fields">
+      <input type="date" id="editNoteDate">
+      <input type="text" id="editNoteTitle" placeholder="Título (opcional)" autocomplete="off">
+    </div>
+    <textarea id="editNoteText" placeholder="Escreva sua anotação..."></textarea>
+    <div class="note-tags-row">
+      <span class="tags-label">Tags:</span>
+      <div class="tag-chips" id="editNoteTagChips"></div>
+      <input type="text" id="editNoteTagInput" placeholder="+ nova tag" class="tag-input-small">
+    </div>
+    <div class="modal-note-photos">
+      <div id="editNotePhotos" class="edit-task-photos"></div>
+      <input type="file" id="editNotePhotoCamera" accept="image/*" capture="environment" style="display:none">
+      <input type="file" id="editNotePhotoGallery" accept="image/*" multiple style="display:none">
+      <button class="photo-btn" id="editNoteBtnCamera" type="button">📷 Câmera</button>
+      <button class="photo-btn" id="editNoteBtnGallery" type="button">🖼 Galeria</button>
+    </div>
+    <div class="modal-actions">
+      <span class="modal-note-count" id="editNoteCount"></span>
+      <button class="secondary" id="editNoteCancel" type="button">Cancelar</button>
+      <button id="editNoteSave" type="button">Salvar</button>
     </div>
   </div>
 </div>
@@ -1964,6 +2051,7 @@
 
     const filtered = getFilteredTasks();
     const groups = groupByDate(filtered);
+    const noteCounts = countNotesByDate();
 
     if (groups.length === 0) {
       report.innerHTML = `
@@ -1979,7 +2067,10 @@
       <div class="day-section">
         <div class="day-header">
           <div class="day-date">${formatDateBR(g.date)}</div>
-          <div class="day-count">${g.items.length} ${g.items.length === 1 ? 'tarefa' : 'tarefas'}</div>
+          <div class="day-header-right">
+            ${noteCounts[g.date] ? `<button type="button" class="day-notes-badge" onclick="openNotesForDate('${g.date}')" title="Ver anotações deste dia">📝 ${noteCounts[g.date]} ${noteCounts[g.date] === 1 ? 'anotação' : 'anotações'}</button>` : ''}
+            <div class="day-count">${g.items.length} ${g.items.length === 1 ? 'tarefa' : 'tarefas'}</div>
+          </div>
         </div>
         <ul class="task-list">
           ${g.items.map((t, i) => {
@@ -2301,263 +2392,58 @@
 
     const groups = groupByDate(items);
     const allDates = items.map(t => t.date).sort();
-    const firstDate = allDates[0];
-    const lastDate = allDates[allDates.length - 1];
     const uniqueDays = new Set(allDates).size;
+    if (pdfRange.value !== 'range') {
+      periodLabel = `${rptShortDate(allDates[0])} a ${rptShortDate(allDates[allDates.length - 1])}`;
+    }
+    const noteCounts = countNotesByDate();
+    const daysWithNotes = groups.filter(g => noteCounts[g.date]).length;
 
-    // Used categories for legend
     const usedCatIds = new Set();
     items.forEach(t => { if (t.categoryId) usedCatIds.add(t.categoryId); });
     const usedCats = categories.filter(c => usedCatIds.has(c.id));
+    const legend = usedCats.map(c => `<span class="rpt-leg"><i style="background:${c.color}"></i>${escapeHtml(c.name)}</span>`).join('')
+      + (daysWithNotes ? `<span class="rpt-leg rpt-leg-note">✎ dia com anotação</span>` : '');
 
-    const generatedOn = new Date().toLocaleString('pt-BR', {
-      day: '2-digit', month: '2-digit', year: 'numeric',
-      hour: '2-digit', minute: '2-digit'
+    const avg = (items.length / uniqueDays).toFixed(1).replace('.', ',');
+    let body = rptHeader('Tarefas Realizadas', escapeHtml(periodLabel),
+      [[items.length, 'tarefas'], [uniqueDays, 'dias'], [avg, 'por dia']], legend);
+
+    let curMonth = '';
+    groups.forEach(g => {
+      const mk = g.date.slice(0, 7);
+      if (mk !== curMonth) {
+        curMonth = mk;
+        body += `<h2 class="rpt-month">${rptMonthLabel(g.date)}</h2>`;
+      }
+      const [y, m, d] = g.date.split('-');
+      const wd = RPT_WEEKDAYS[new Date(+y, +m - 1, +d).getDay()];
+      const nc = noteCounts[g.date] || 0;
+      const lis = g.items.map(t => {
+        const cat = getCategory(t.categoryId);
+        const dot = cat ? ` style="--c:${cat.color}"` : '';
+        const txtStyle = (cat && cat.colorText) ? ` style="color:${cat.color};font-weight:500"` : '';
+        let text = escapeHtml(t.text.trim());
+        if (!/[.!?:;]$/.test(text)) text += '.';
+        const np = Array.isArray(t.photos) ? t.photos.length : 0;
+        const ph = np ? ` <span class="rpt-ph">📷${np > 1 ? ' ' + np : ''}</span>` : '';
+        return `<li${dot}><span${txtStyle}>${text}</span>${ph}</li>`;
+      }).join('');
+      body += `<section class="rpt-day${g.items.length <= 14 ? ' keep' : ''}">
+        <div class="rpt-date"><div class="d">${+d}</div><div class="w">${wd}</div>${nc ? `<div class="n">✎ ${nc} ${nc > 1 ? 'anotações' : 'anotação'}</div>` : ''}</div>
+        <ul class="rpt-tasks">${lis}</ul>
+      </section>`;
     });
 
-    // Build HTML document for printing
-    const html = `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<title>Relatório de Tarefas — ${escapeHtml(periodLabel)}</title>
-<style>
-  @page {
-    size: A4;
-    margin: 18mm 16mm 22mm 16mm;
-    @bottom-center {
-      content: "Página " counter(page) " de " counter(pages);
-      font-family: 'Inter', -apple-system, sans-serif;
-      font-size: 9pt;
-      color: #9ca3af;
-    }
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-    color: #111827;
-    line-height: 1.5;
-    -webkit-font-smoothing: antialiased;
-    font-size: 10.5pt;
-    background: white;
-  }
-  body { padding: 0; background: white; }
-
-  /* Cover header */
-  .cover {
-    border-bottom: 2px solid #111827;
-    padding-bottom: 14pt;
-    margin-bottom: 20pt;
-  }
-  .cover h1 {
-    font-family: Georgia, 'Times New Roman', serif;
-    font-size: 26pt;
-    font-weight: 600;
-    letter-spacing: -0.02em;
-    color: #111827;
-    margin-bottom: 6pt;
-  }
-  .cover .subtitle {
-    font-size: 11pt;
-    color: #6b7280;
-    font-style: italic;
-  }
-  .meta-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 12pt;
-    margin-top: 14pt;
-    padding-top: 12pt;
-    border-top: 1px solid #e5e7eb;
-  }
-  .meta-item .label {
-    font-size: 8pt;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #9ca3af;
-    margin-bottom: 2pt;
-    font-weight: 600;
-  }
-  .meta-item .value {
-    font-size: 11pt;
-    color: #111827;
-    font-weight: 500;
-  }
-
-  /* Day block */
-  .day {
-    margin-bottom: 10pt;
-    page-break-inside: avoid;
-  }
-  .day-header {
-    text-align: left;
-    padding-bottom: 2pt;
-    margin-bottom: 4pt;
-    border-bottom: 1px solid #d1d5db;
-  }
-  .day-title {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 10.5pt;
-    font-weight: 600;
-    color: #374151;
-    letter-spacing: 0.01em;
-    display: inline;
-  }
-  .day-title .weekday {
-    color: #9ca3af;
-    font-weight: 400;
-    margin-right: 3pt;
-  }
-  .day-count { display: none; }
-
-  .tasks-prose {
-    font-size: 10.5pt;
-    color: #1f2937;
-    text-align: justify;
-    line-height: 1.55;
-    margin: 0;
-  }
-  .task-sentence {
-    display: inline;
-  }
-  .task-sentence + .task-sentence::before {
-    content: " ";
-  }
-  .task-sentence .cat-marker {
-    display: inline-block;
-    width: 5pt;
-    height: 5pt;
-    border-radius: 50%;
-    background: var(--cat-color, transparent);
-    vertical-align: 1pt;
-    margin-right: 3pt;
-  }
-
-  /* Legend */
-  .legend {
-    margin-top: 24pt;
-    padding-top: 12pt;
-    border-top: 1px solid #e5e7eb;
-    page-break-inside: avoid;
-  }
-  .legend h2 {
-    font-family: Georgia, 'Times New Roman', serif;
-    font-size: 11pt;
-    font-weight: 600;
-    color: #374151;
-    margin-bottom: 8pt;
-  }
-  .legend-items {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10pt;
-  }
-  .legend-item {
-    display: inline-flex;
-    align-items: center;
-    font-size: 9.5pt;
-    color: #374151;
-  }
-  .legend-dot {
-    width: 8pt;
-    height: 8pt;
-    border-radius: 50%;
-    margin-right: 5pt;
-    display: inline-block;
-  }
-
-  /* Print tweaks */
-  @media print {
-    .day { page-break-inside: avoid; }
-  }
-</style>
-</head>
-<body>
-
-<section class="cover">
-  <h1>Relatório de Tarefas Realizadas</h1>
-  <div class="subtitle">${escapeHtml(periodLabel)}</div>
-  <div class="meta-grid">
-    <div class="meta-item">
-      <div class="label">Tarefas</div>
-      <div class="value">${items.length}</div>
-    </div>
-    <div class="meta-item">
-      <div class="label">Dias registrados</div>
-      <div class="value">${uniqueDays}</div>
-    </div>
-    <div class="meta-item">
-      <div class="label">Gerado em</div>
-      <div class="value">${escapeHtml(generatedOn)}</div>
-    </div>
-  </div>
-</section>
-
-${groups.map(g => `
-  <section class="day">
-    <div class="day-header">
-      <span class="day-title">${formatDateHeader(g.date)}</span><span class="day-count">${g.items.length} ${g.items.length === 1 ? 'tarefa' : 'tarefas'}</span>
-    </div>
-    <p class="tasks-prose">${g.items.map(t => {
-      const cat = getCategory(t.categoryId);
-      const marker = cat ? `<span class="cat-marker" style="--cat-color:${cat.color}"></span>` : '';
-      const sentenceStyle = (cat && cat.colorText) ? ` style="color:${cat.color};font-weight:500"` : '';
-      // Ensure each task ends with a period
-      let text = escapeHtml(t.text.trim());
-      if (!/[.!?]$/.test(text)) text += '.';
-      return `<span class="task-sentence"${sentenceStyle}>${marker}${text}</span>`;
-    }).join(' ')}</p>
-  </section>
-`).join('')}
-
-${usedCats.length > 0 ? `
-  <section class="legend">
-    <h2>Legenda de categorias</h2>
-    <div class="legend-items">
-      ${usedCats.map(c => `
-        <span class="legend-item">
-          <span class="legend-dot" style="background:${c.color}"></span>
-          ${escapeHtml(c.name)}
-        </span>
-      `).join('')}
-    </div>
-  </section>
-` : ''}
-
-<scr` + `ipt>
-  window.addEventListener('load', () => {
-    setTimeout(() => { window.print(); }, 250);
-  });
-  window.addEventListener('afterprint', () => {
-    setTimeout(() => window.close(), 300);
-  });
-</scr` + `ipt>
-</body>
-</html>`;
-
-    // Extract only the <body>...</body> contents (we'll inject inline)
-    const bodyMatch = html.match(/<body>([\s\S]*)<\/body>/);
-    const bodyContent = bodyMatch ? bodyMatch[1] : html;
-    // Extract the <style> block
-    const styleMatch = html.match(/<style>([\s\S]*?)<\/style>/);
-    const styleContent = styleMatch ? styleMatch[1] : '';
-
-    // Remove auto-print script from bodyContent (we control printing here)
-    const cleanBody = bodyContent.replace(/<scr[\s\S]*?<\/scr[\s\S]*?>/gi, '');
-
-    // Show inline preview overlay
-    const overlay = document.getElementById('pdfPreview');
-    document.getElementById('pdfPreviewStyles').textContent = styleContent;
-    document.getElementById('pdfPreviewBody').innerHTML = cleanBody;
-    overlay.classList.add('active');
-    document.body.classList.add('printing-mode');
-
+    openPdfPreview(body, `Tarefas Realizadas — ${periodLabel}`);
     pdfModal.classList.remove('active');
   }
 
   function closePdfPreview() {
     document.getElementById('pdfPreview').classList.remove('active');
     document.body.classList.remove('printing-mode');
+    document.getElementById('pdfPreviewBody').innerHTML = '';
+    if (_titleBeforePdf !== null) { document.title = _titleBeforePdf; _titleBeforePdf = null; }
   }
 
   function formatDateHeader(iso) {
@@ -2568,258 +2454,200 @@ ${usedCats.length > 0 ? `
     return `<span class="weekday">${weekdays[date.getDay()]}</span> · ${+d} de ${months[+m-1]} de ${y}`;
   }
 
-  // ===== Shared PDF preview infrastructure =====
-  const PDF_BASE_STYLES = `
-    @page {
-      size: A4;
-      margin: 18mm 16mm 22mm 16mm;
-      @bottom-center {
-        content: "Página " counter(page) " de " counter(pages);
-        font-family: 'Inter', -apple-system, sans-serif;
-        font-size: 9pt;
-        color: #9ca3af;
-      }
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      color: #111827;
-      line-height: 1.5;
-      font-size: 10.5pt;
-      background: white;
-    }
-    .cover {
-      border-bottom: 2px solid #111827;
-      padding-bottom: 14pt;
-      margin-bottom: 20pt;
-    }
-    .cover h1 {
-      font-family: Georgia, 'Times New Roman', serif;
-      font-size: 26pt;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-      color: #111827;
-      margin-bottom: 6pt;
-    }
-    .cover .subtitle {
-      font-size: 11pt;
-      color: #6b7280;
-      font-style: italic;
-    }
-    .meta-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 12pt;
-      margin-top: 14pt;
-      padding-top: 12pt;
-      border-top: 1px solid #e5e7eb;
-    }
-    .meta-item .label {
-      font-size: 8pt;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: #9ca3af;
-      margin-bottom: 2pt;
-      font-weight: 600;
-    }
-    .meta-item .value {
-      font-size: 11pt;
-      color: #111827;
-      font-weight: 500;
-    }
-    .pdf-section {
-      margin-bottom: 14pt;
-      page-break-inside: avoid;
-    }
-    .pdf-section-header {
-      padding-bottom: 2pt;
-      margin-bottom: 6pt;
-      border-bottom: 1px solid #d1d5db;
-      font-family: 'Inter', sans-serif;
-      font-size: 11pt;
-      font-weight: 600;
-      color: #374151;
-    }
-    .pdf-section-header .muted {
-      color: #9ca3af;
-      font-weight: 400;
-      margin-right: 4pt;
-    }
-    .pdf-list-item {
-      padding: 5pt 0 5pt 14pt;
-      position: relative;
-      page-break-inside: avoid;
-      font-size: 10.5pt;
-    }
-    .pdf-list-item::before {
-      content: "";
-      position: absolute;
-      left: 0;
-      top: 10pt;
-      width: 5pt;
-      height: 5pt;
-      background: #9ca3af;
-      border-radius: 50%;
-    }
-    .pdf-list-item.has-cat::before {
-      background: var(--cat-color, #9ca3af);
-    }
-    .pdf-list-item .meta {
-      font-size: 9pt;
-      color: #6b7280;
-      margin-top: 2pt;
-    }
-    .pdf-list-item .meta .due {
-      font-weight: 500;
-    }
-    .pdf-list-item .meta .due.overdue { color: #dc2626; }
-    .pdf-list-item .meta .due.today { color: #d97706; }
-    .pdf-note {
-      page-break-inside: avoid;
-      margin-bottom: 14pt;
-      padding-bottom: 10pt;
-      border-bottom: 1px solid #e5e7eb;
-    }
-    .pdf-note-meta {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      font-size: 10pt;
-      color: #6b7280;
-      margin-bottom: 4pt;
-    }
-    .pdf-note-date {
-      font-weight: 500;
-      color: #374151;
-    }
-    .pdf-note-title {
-      font-family: Georgia, serif;
-      font-size: 13pt;
-      font-weight: 600;
-      color: #111827;
-      margin-bottom: 4pt;
-    }
-    .pdf-note-text {
-      white-space: pre-wrap;
-      font-size: 10.5pt;
-      line-height: 1.55;
-      color: #1f2937;
-    }
-    .pdf-note-tags {
-      margin-top: 6pt;
-      font-size: 9pt;
-      color: #7c3aed;
-    }
-    .pdf-note-tag {
-      display: inline-block;
-      padding: 1pt 6pt;
-      background: #ede9fe;
-      border-radius: 8pt;
-      margin-right: 4pt;
-    }
+  // ===== Shared PDF infrastructure (v12) =====
+  // Estilos 100% escopados em .rpt para não vazar para o app enquanto o preview está aberto.
+  const RPT_WEEKDAYS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+  const RPT_MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const RPT_STYLES = `
+    .rpt { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      color: #1f2937; font-size: 9.5pt; line-height: 1.45; background: #fff;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .rpt * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* Cabeçalho compacto */
+    .rpt-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16pt;
+      padding-bottom: 8pt; border-bottom: 1.5pt solid #1a2236; }
+    .rpt-brand { font-size: 6.5pt; font-weight: 700; letter-spacing: .24em; text-transform: uppercase; color: #a88243; margin-bottom: 4pt; }
+    .rpt-title { font-family: Georgia, 'Times New Roman', serif; font-size: 19pt; font-weight: 600; letter-spacing: -.01em; line-height: 1.12; color: #111827; }
+    .rpt-sub { font-size: 9.5pt; color: #6b7280; margin-top: 3pt; }
+    .rpt-stats { display: flex; gap: 16pt; text-align: right; flex-shrink: 0; }
+    .rpt-stat b { display: block; font-size: 14pt; font-weight: 600; color: #111827; font-variant-numeric: tabular-nums; line-height: 1.1; }
+    .rpt-stat span { font-size: 6.5pt; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; color: #9ca3af; }
+    .rpt-meta { display: flex; justify-content: space-between; align-items: center; gap: 12pt;
+      font-size: 7.5pt; color: #9ca3af; padding: 4pt 0 2pt; margin-bottom: 6pt; }
+    .rpt-legend { display: flex; flex-wrap: wrap; gap: 4pt 10pt; }
+    .rpt-leg { display: inline-flex; align-items: center; gap: 3pt; color: #4b5563; }
+    .rpt-leg i { width: 5.5pt; height: 5.5pt; border-radius: 50%; display: inline-block; }
+    .rpt-leg-note { color: #6d28d9; }
+    .rpt-gen { white-space: nowrap; margin-left: auto; }
+
+    /* Separador de mês */
+    .rpt-month { font-family: Georgia, 'Times New Roman', serif; font-size: 11.5pt; font-weight: 600; color: #1a2236;
+      margin: 12pt 0 0; padding-bottom: 3pt; border-bottom: .75pt solid #cbd0d8; break-after: avoid; page-break-after: avoid; }
+
+    /* Realizadas: coluna de data + lista */
+    .rpt-day { display: grid; grid-template-columns: 19mm 1fr; column-gap: 8pt; padding: 5pt 0 5.5pt; border-bottom: .5pt solid #eceef1; }
+    .rpt-day.keep { break-inside: avoid; page-break-inside: avoid; }
+    .rpt-date .d { font-size: 14pt; font-weight: 600; color: #111827; line-height: 1; font-variant-numeric: tabular-nums; }
+    .rpt-date .w { font-size: 7pt; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: #9ca3af; margin-top: 2pt; }
+    .rpt-date .n { font-size: 7pt; color: #6d28d9; margin-top: 3pt; font-weight: 500; }
+    .rpt-tasks { list-style: none; padding-top: 1pt; }
+    .rpt-tasks li { position: relative; padding-left: 10pt; break-inside: avoid; page-break-inside: avoid; }
+    .rpt-tasks li + li { margin-top: 1pt; }
+    .rpt-tasks li::before { content: ""; position: absolute; left: 1pt; top: .52em; width: 4.5pt; height: 4.5pt; border-radius: 50%; background: var(--c, #c7cbd1); }
+    .rpt-ph { font-size: 7.5pt; color: #9ca3af; white-space: nowrap; }
+
+    /* A Fazer */
+    .rpt-sec { margin-top: 12pt; }
+    .rpt-sec-h { display: flex; align-items: center; gap: 6pt; font-size: 10.5pt; font-weight: 600; color: #111827;
+      padding-bottom: 3pt; border-bottom: .75pt solid #cbd0d8; break-after: avoid; page-break-after: avoid; }
+    .rpt-sec-h .bar { width: 3pt; height: 10pt; border-radius: 1pt; background: var(--c, #9ca3af); }
+    .rpt-sec-h .cnt { font-size: 8.5pt; font-weight: 500; color: #9ca3af; }
+    .rpt-todo { display: grid; grid-template-columns: 9pt 1fr auto; column-gap: 7pt; align-items: baseline;
+      padding: 4pt 0; border-bottom: .5pt solid #eef0f2; break-inside: avoid; page-break-inside: avoid; }
+    .rpt-box { width: 7pt; height: 7pt; border: .8pt solid #9ca3af; border-radius: 1.5pt; align-self: center; }
+    .rpt-todo.done .rpt-box { background: #16a34a; border-color: #16a34a; }
+    .rpt-todo.done .txt { color: #6b7280; }
+    .rpt-cat { font-size: 7.5pt; font-weight: 600; color: var(--c); margin-left: 5pt; white-space: nowrap; }
+    .rpt-due { font-size: 8.5pt; color: #6b7280; white-space: nowrap; font-variant-numeric: tabular-nums; text-align: right; }
+    .rpt-due.overdue { color: #dc2626; font-weight: 600; }
+    .rpt-due.today { color: #b45309; font-weight: 600; }
+
+    /* Anotações */
+    .rpt-note { padding: 8pt 0 9pt; border-bottom: .5pt solid #e5e7eb; }
+    .rpt-note.keep { break-inside: avoid; page-break-inside: avoid; }
+    .rpt-note-h { display: flex; justify-content: space-between; align-items: baseline; gap: 10pt; break-after: avoid; page-break-after: avoid; }
+    .rpt-note-date { font-size: 7.5pt; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: #6b7280; white-space: nowrap; }
+    .rpt-note-title { font-family: Georgia, 'Times New Roman', serif; font-size: 12pt; font-weight: 600; color: #111827; margin-top: 2pt; line-height: 1.25; break-after: avoid; page-break-after: avoid; }
+    .rpt-note-text { white-space: pre-wrap; word-wrap: break-word; font-size: 9.5pt; line-height: 1.5; color: #1f2937; margin-top: 3pt; orphans: 3; widows: 3; }
+    .rpt-tags { display: flex; flex-wrap: wrap; gap: 3pt; justify-content: flex-end; }
+    .rpt-tag { font-size: 7pt; color: #6d28d9; border: .6pt solid #c4b5fd; border-radius: 6pt; padding: 0 5pt; white-space: nowrap; line-height: 1.6; }
+    .rpt-photos { display: flex; flex-wrap: wrap; gap: 4pt; margin-top: 6pt; }
+    .rpt-photos img { height: 32mm; max-width: 48mm; object-fit: cover; border-radius: 2pt; break-inside: avoid; }
   `;
 
-  function openPdfPreview(bodyHtml) {
-    document.getElementById('pdfPreviewStyles').textContent = PDF_BASE_STYLES;
-    document.getElementById('pdfPreviewBody').innerHTML = bodyHtml;
-    document.getElementById('pdfPreview').classList.add('active');
+  function rptShortDate(iso) { return iso.split('-').reverse().join('/'); }
+  function rptMonthLabel(iso) { const [y, m] = iso.split('-'); return `${RPT_MONTHS[+m - 1]} ${y}`; }
+  function rptGeneratedOn() {
+    return new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+  function rptHeader(title, subtitle, stats, legendHtml) {
+    return `<header class="rpt-head">
+        <div>
+          <div class="rpt-brand">TC · Development</div>
+          <h1 class="rpt-title">${title}</h1>
+          <div class="rpt-sub">${subtitle}</div>
+        </div>
+        <div class="rpt-stats">${stats.map(([v, l]) => `<div class="rpt-stat"><b>${v}</b><span>${l}</span></div>`).join('')}</div>
+      </header>
+      <div class="rpt-meta"><div class="rpt-legend">${legendHtml || ''}</div><span class="rpt-gen">Gerado em ${escapeHtml(rptGeneratedOn())}</span></div>`;
+  }
+
+  let _titleBeforePdf = null;
+  function openPdfPreview(bodyHtml, docTitle) {
+    document.getElementById('pdfPreviewStyles').textContent = RPT_STYLES;
+    document.getElementById('pdfPreviewBody').innerHTML = `<div class="rpt">${bodyHtml}</div>`;
+    const overlay = document.getElementById('pdfPreview');
+    overlay.classList.add('active');
+    overlay.scrollTop = 0;
     document.body.classList.add('printing-mode');
+    // O título da página vira o nome sugerido do arquivo PDF
+    if (docTitle) { _titleBeforePdf = document.title; document.title = docTitle; }
   }
 
   // ===== PDF: A Fazer =====
   function generateTodoPDF() {
     if (todos.length === 0) { alert('Sem tarefas para exportar'); return; }
-    const generatedOn = new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
     const pending = todos.filter(t => !t.done);
     const done = todos.filter(t => t.done);
 
     const buckets = { overdue: [], today: [], upcoming: [], someday: [] };
     pending.forEach(t => buckets[todoBucket(t)].push(t));
-    Object.values(buckets).forEach(arr => arr.sort((a,b) => (a.dueDate||'').localeCompare(b.dueDate||'')));
+    Object.values(buckets).forEach(arr => arr.sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || '')));
     done.sort((a, b) => (b.doneAt || '').localeCompare(a.doneAt || ''));
 
-    const titles = { overdue: 'Atrasadas', today: 'Para hoje', upcoming: 'Próximas', someday: 'Sem data' };
+    const meta = {
+      overdue:  { title: 'Atrasadas', color: '#dc2626' },
+      today:    { title: 'Para hoje', color: '#d97706' },
+      upcoming: { title: 'Próximas',  color: '#2563eb' },
+      someday:  { title: 'Sem data',  color: '#9ca3af' },
+      done:     { title: 'Concluídas', color: '#16a34a' }
+    };
 
-    function renderList(items, bucketName) {
-      return items.map(t => {
-        const cat = getCategory(t.categoryId);
-        const catStyle = cat ? `style="--cat-color:${cat.color}"` : '';
-        const catTag = cat ? `<span class="pdf-note-tag" style="background:${cat.color}1a;color:${cat.color}">${escapeHtml(cat.name)}</span>` : '';
-        const dueClass = bucketName === 'overdue' ? 'overdue' : bucketName === 'today' ? 'today' : '';
-        const due = t.dueDate ? `<span class="due ${dueClass}">⏰ ${formatDueDate(t.dueDate)}</span>` : '';
-        return `<div class="pdf-list-item ${cat ? 'has-cat' : ''}" ${catStyle}>
-          ${escapeHtml(t.text)}
-          ${(due || catTag) ? `<div class="meta">${due}${due && catTag ? ' · ' : ''}${catTag}</div>` : ''}
-        </div>`;
-      }).join('');
+    function row(t, bucket) {
+      const cat = getCategory(t.categoryId);
+      const catTag = cat ? `<span class="rpt-cat" style="--c:${cat.color}">● ${escapeHtml(cat.name)}</span>` : '';
+      let due = '';
+      if (bucket === 'done') {
+        due = t.doneAt ? `<span class="rpt-due">concluída ${rptShortDate(t.doneAt.slice(0, 10)).slice(0, 5)}</span>` : '<span></span>';
+      } else {
+        const cls = bucket === 'overdue' ? 'overdue' : bucket === 'today' ? 'today' : '';
+        due = t.dueDate ? `<span class="rpt-due ${cls}">${formatDueDate(t.dueDate)}</span>` : '<span></span>';
+      }
+      return `<div class="rpt-todo ${bucket === 'done' ? 'done' : ''}">
+        <span class="rpt-box"></span>
+        <span class="txt">${escapeHtml(t.text)}${catTag}</span>
+        ${due}
+      </div>`;
     }
 
-    let body = `
-      <section class="cover">
-        <h1>Tarefas a Fazer</h1>
-        <div class="subtitle">Lista de pendências</div>
-        <div class="meta-grid">
-          <div class="meta-item"><div class="label">Pendentes</div><div class="value">${pending.length}</div></div>
-          <div class="meta-item"><div class="label">Concluídas</div><div class="value">${done.length}</div></div>
-          <div class="meta-item"><div class="label">Gerado em</div><div class="value">${escapeHtml(generatedOn)}</div></div>
-        </div>
-      </section>
-    `;
+    let body = rptHeader('Tarefas a Fazer', 'Lista de pendências',
+      [[pending.length, 'pendentes'], [buckets.overdue.length, 'atrasadas'], [done.length, 'concluídas']]);
 
     ['overdue', 'today', 'upcoming', 'someday'].forEach(b => {
       if (buckets[b].length === 0) return;
-      body += `<section class="pdf-section">
-        <div class="pdf-section-header"><span class="muted">${buckets[b].length}</span>${titles[b]}</div>
-        ${renderList(buckets[b], b)}
+      body += `<section class="rpt-sec">
+        <div class="rpt-sec-h"><span class="bar" style="--c:${meta[b].color}"></span>${meta[b].title}<span class="cnt">${buckets[b].length}</span></div>
+        ${buckets[b].map(t => row(t, b)).join('')}
       </section>`;
     });
-
     if (done.length > 0) {
-      body += `<section class="pdf-section">
-        <div class="pdf-section-header"><span class="muted">${done.length}</span>Concluídas</div>
-        ${renderList(done, 'done')}
+      body += `<section class="rpt-sec">
+        <div class="rpt-sec-h"><span class="bar" style="--c:${meta.done.color}"></span>${meta.done.title}<span class="cnt">${done.length}</span></div>
+        ${done.map(t => row(t, 'done')).join('')}
       </section>`;
     }
-    openPdfPreview(body);
+    openPdfPreview(body, 'Tarefas a Fazer');
   }
 
   // ===== PDF: Anotações =====
   function generateNotesPDF() {
-    const filtered = activeNoteFilter ? notes.filter(n => (n.tags || []).includes(activeNoteFilter)) : notes;
-    if (filtered.length === 0) { alert('Sem anotações para exportar'); return; }
-    const sorted = filtered.slice().sort((a, b) => {
+    const sorted = getVisibleNotes().sort((a, b) => {
       if (b.date !== a.date) return b.date.localeCompare(a.date);
       return (b.createdAt || '').localeCompare(a.createdAt || '');
     });
-    const generatedOn = new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    if (sorted.length === 0) { alert('Sem anotações para exportar'); return; }
     const allTags = [...new Set(sorted.flatMap(n => n.tags || []))];
+    const days = new Set(sorted.map(n => n.date)).size;
 
-    let body = `
-      <section class="cover">
-        <h1>Anotações</h1>
-        <div class="subtitle">${activeNoteFilter ? 'Tag: ' + escapeHtml(activeNoteFilter) : 'Todas as anotações'}</div>
-        <div class="meta-grid">
-          <div class="meta-item"><div class="label">Anotações</div><div class="value">${sorted.length}</div></div>
-          <div class="meta-item"><div class="label">Tags</div><div class="value">${allTags.length}</div></div>
-          <div class="meta-item"><div class="label">Gerado em</div><div class="value">${escapeHtml(generatedOn)}</div></div>
-        </div>
-      </section>
-    `;
+    const filterParts = [];
+    if (activeNoteFilter) filterParts.push('Tag: ' + escapeHtml(activeNoteFilter));
+    if (activeNoteDate) filterParts.push(escapeHtml(formatDateBR(activeNoteDate)));
+    const subtitle = filterParts.length ? filterParts.join(' · ')
+      : `${rptShortDate(sorted[sorted.length - 1].date)} a ${rptShortDate(sorted[0].date)}`;
 
+    let body = rptHeader('Anotações', subtitle, [[sorted.length, 'anotações'], [days, 'dias'], [allTags.length, 'tags']]);
+
+    let curMonth = '';
     sorted.forEach(n => {
-      const tagBadges = (n.tags || []).map(t => `<span class="pdf-note-tag">${escapeHtml(t)}</span>`).join('');
-      const title = n.title ? `<div class="pdf-note-title">${escapeHtml(n.title)}</div>` : '';
-      body += `<div class="pdf-note">
-        <div class="pdf-note-meta">
-          <span class="pdf-note-date">${formatDateBR(n.date)}</span>
+      const mk = (n.date || '').slice(0, 7);
+      if (mk !== curMonth) { curMonth = mk; body += `<h2 class="rpt-month">${rptMonthLabel(n.date)}</h2>`; }
+      const tagBadges = (n.tags || []).map(t => `<span class="rpt-tag">${escapeHtml(t)}</span>`).join('');
+      const photos = (Array.isArray(n.photos) ? n.photos : []).map(p => getPhotoDisplayUrl(p)).filter(Boolean);
+      const photoHtml = photos.length ? `<div class="rpt-photos">${photos.map(u => `<img src="${escapeHtml(u)}" alt="">`).join('')}</div>` : '';
+      const keep = (n.text || '').length < 450 && photos.length === 0;
+      body += `<article class="rpt-note${keep ? ' keep' : ''}">
+        <div class="rpt-note-h">
+          <span class="rpt-note-date">${escapeHtml(formatDateBR(n.date))}</span>
+          ${tagBadges ? `<span class="rpt-tags">${tagBadges}</span>` : ''}
         </div>
-        ${title}
-        <div class="pdf-note-text">${escapeHtml(n.text)}</div>
-        ${tagBadges ? `<div class="pdf-note-tags">${tagBadges}</div>` : ''}
-      </div>`;
+        ${n.title ? `<div class="rpt-note-title">${escapeHtml(n.title)}</div>` : ''}
+        <div class="rpt-note-text">${escapeHtml(n.text || '')}</div>
+        ${photoHtml}
+      </article>`;
     });
 
-    openPdfPreview(body);
+    openPdfPreview(body, 'Anotações');
   }
 
   document.getElementById('todoPdfBtn').addEventListener('click', generateTodoPDF);
@@ -3839,6 +3667,7 @@ ${usedCats.length > 0 ? `
   let pendingNoteTags = [];
   let pendingNotePhotos = [];
   let activeNoteFilter = null; // tag name or null
+  let activeNoteDate = null;   // "YYYY-MM-DD" (vindo do selo 📝 em Realizadas) ou null
 
   noteDate.value = todayISO();
 
@@ -3919,6 +3748,7 @@ ${usedCats.length > 0 ? `
       updatedAt: new Date().toISOString()
     };
     notes.push(note);
+    render();
     // Add new tags to global list
     pendingNoteTags.forEach(t => { if (!tags.includes(t)) tags.push(t); });
     pendingNoteTags = [];
@@ -3941,52 +3771,191 @@ ${usedCats.length > 0 ? `
     notes = notes.filter(n => n.id !== id);
     save();
     renderNotes();
+    render();
   }
 
+  // ===== v12: edição de anotação em modal grande =====
   let editingNoteId = null;
-  function editNote(id) {
-    const note = notes.find(n => n.id === id);
-    if (!note) return;
-    const newText = prompt('Editar anotação:', note.text);
-    if (newText === null) return;
-    if (!newText.trim()) return;
-    note.text = newText.trim();
-    note.updatedAt = new Date().toISOString();
-    save();
-    renderNotes();
+  let editNoteTags = [];
+  let editNotePhotos = [];
+  let editNoteAddedPhotos = [];   // fotos enviadas nesta edição (apagadas se cancelar)
+  let editNoteSnapshot = '';
+
+  const editNoteModal = document.getElementById('editNoteModal');
+  const editNoteDate = document.getElementById('editNoteDate');
+  const editNoteTitle = document.getElementById('editNoteTitle');
+  const editNoteText = document.getElementById('editNoteText');
+  const editNoteTagInput = document.getElementById('editNoteTagInput');
+  const editNoteCount = document.getElementById('editNoteCount');
+
+  function editNoteState() {
+    return JSON.stringify([editNoteDate.value, editNoteTitle.value, editNoteText.value, editNoteTags, editNotePhotos]);
   }
 
-  function changeNoteDate(id) {
-    const note = notes.find(n => n.id === id);
+  function updateEditNoteCount() {
+    const t = editNoteText.value;
+    const words = t.trim() ? t.trim().split(/\s+/).length : 0;
+    const lines = t ? t.split('\n').length : 0;
+    editNoteCount.textContent = `${words} ${words === 1 ? 'palavra' : 'palavras'} · ${lines} ${lines === 1 ? 'linha' : 'linhas'}`;
+  }
+
+  function renderEditNoteTags() {
+    const box = document.getElementById('editNoteTagChips');
+    box.innerHTML = editNoteTags.map((tag, i) =>
+      `<span class="tag-chip">${escapeHtml(tag)}<button type="button" class="tag-chip-remove" data-i="${i}">×</button></span>`).join('');
+    box.querySelectorAll('.tag-chip-remove').forEach(b => b.addEventListener('click', () => {
+      editNoteTags.splice(+b.dataset.i, 1);
+      renderEditNoteTags();
+    }));
+  }
+
+  function renderEditNotePhotos() {
+    const box = document.getElementById('editNotePhotos');
+    box.innerHTML = editNotePhotos.map((p, i) => {
+      const url = getPhotoDisplayUrl(p) || '';
+      return `<div class="pending-photo"><img src="${escapeHtml(url)}" alt="Foto"><button class="pending-photo-remove" data-i="${i}" type="button" title="Remover">×</button></div>`;
+    }).join('');
+    box.querySelectorAll('.pending-photo-remove').forEach(b => b.addEventListener('click', () => {
+      // Só desvincula aqui; a foto é apagada de fato ao salvar
+      editNotePhotos.splice(+b.dataset.i, 1);
+      renderEditNotePhotos();
+    }));
+  }
+
+  function editNote(id) {
+    const note = notes.find(n => n.id === id || n.id === +id);
     if (!note) return;
-    const newDate = prompt('Nova data (formato AAAA-MM-DD):', note.date);
-    if (!newDate || !/^\d{4}-\d{2}-\d{2}$/.test(newDate)) return;
-    note.date = newDate;
+    editingNoteId = note.id;
+    editNoteTags = (note.tags || []).slice();
+    editNotePhotos = (Array.isArray(note.photos) ? note.photos : []).slice();
+    editNoteAddedPhotos = [];
+    editNoteDate.value = note.date || todayISO();
+    editNoteTitle.value = note.title || '';
+    editNoteText.value = note.text || '';
+    editNoteTagInput.value = '';
+    renderEditNoteTags();
+    renderEditNotePhotos();
+    updateEditNoteCount();
+    editNoteSnapshot = editNoteState();
+    editNoteModal.classList.add('active');
+    // Mobile: não abre o teclado sozinho (atrapalharia rolar até o trecho); desktop: foco no fim do texto
+    if (window.matchMedia('(min-width: 601px)').matches) {
+      editNoteText.focus();
+      editNoteText.setSelectionRange(editNoteText.value.length, editNoteText.value.length);
+    }
+    editNoteText.scrollTop = 0;
+  }
+
+  async function closeEditNote(force) {
+    if (!force && editNoteState() !== editNoteSnapshot && !confirm('Descartar as alterações desta anotação?')) return;
+    for (const p of editNoteAddedPhotos) { try { await deletePhotoFromStorage(p); } catch (e) {} }
+    editNoteAddedPhotos = [];
+    editingNoteId = null;
+    editNoteModal.classList.remove('active');
+  }
+
+  async function saveEditNote() {
+    const note = notes.find(n => n.id === editingNoteId);
+    if (!note) { closeEditNote(true); return; }
+    const text = editNoteText.value.replace(/\s+$/, '');
+    if (!text.trim()) { alert('A anotação não pode ficar vazia.'); return; }
+    const pendingTag = editNoteTagInput.value.trim().replace(/,$/, '');
+    if (pendingTag && !editNoteTags.includes(pendingTag)) editNoteTags.push(pendingTag);
+    const removed = (note.photos || []).filter(p => !editNotePhotos.includes(p));
+    note.date = /^\d{4}-\d{2}-\d{2}$/.test(editNoteDate.value) ? editNoteDate.value : note.date;
+    note.title = editNoteTitle.value.trim() || null;
+    note.text = text;
+    note.tags = editNoteTags.slice();
+    note.photos = editNotePhotos.slice();
     note.updatedAt = new Date().toISOString();
+    editNoteTags.forEach(t => { if (!tags.includes(t)) tags.push(t); });
+    editNoteAddedPhotos = [];
+    editingNoteId = null;
+    editNoteModal.classList.remove('active');
     save();
     renderNotes();
+    render();
+    for (const p of removed) { try { await deletePhotoFromStorage(p); } catch (e) {} }
+  }
+
+  async function handleEditNotePhotoFiles(files) {
+    if (!firestoreDb) { alert('Para adicionar fotos, conecte a sincronização primeiro.'); return; }
+    for (const f of Array.from(files || [])) {
+      try {
+        const id = await uploadPhoto(f);
+        editNotePhotos.push(id);
+        editNoteAddedPhotos.push(id);
+        renderEditNotePhotos();
+      } catch (e) { alert('Erro: ' + (e.message || e)); }
+    }
+  }
+
+  editNoteText.addEventListener('input', updateEditNoteCount);
+  editNoteTagInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      const tag = editNoteTagInput.value.trim().replace(/,$/, '');
+      if (tag && !editNoteTags.includes(tag)) { editNoteTags.push(tag); renderEditNoteTags(); }
+      editNoteTagInput.value = '';
+    }
+  });
+  document.getElementById('editNoteSave').addEventListener('click', saveEditNote);
+  document.getElementById('editNoteCancel').addEventListener('click', () => closeEditNote(false));
+  editNoteModal.addEventListener('click', e => { if (e.target === editNoteModal) closeEditNote(false); });
+  editNoteModal.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeEditNote(false); }
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveEditNote(); }
+  });
+  document.getElementById('editNoteBtnCamera').addEventListener('click', () => document.getElementById('editNotePhotoCamera').click());
+  document.getElementById('editNoteBtnGallery').addEventListener('click', () => document.getElementById('editNotePhotoGallery').click());
+  document.getElementById('editNotePhotoCamera').addEventListener('change', e => { handleEditNotePhotoFiles(e.target.files); e.target.value = ''; });
+  document.getElementById('editNotePhotoGallery').addEventListener('change', e => { handleEditNotePhotoFiles(e.target.files); e.target.value = ''; });
+
+  // Mantido por compatibilidade (atalho antigo); hoje a data é editada dentro do modal
+  function changeNoteDate(id) { editNote(id); }
+
+  // ===== v12: ligação Realizadas ↔ Anotações =====
+  function countNotesByDate() {
+    const m = {};
+    notes.forEach(n => { if (n && n.date) m[n.date] = (m[n.date] || 0) + 1; });
+    return m;
+  }
+
+  function getVisibleNotes() {
+    let list = notes.slice();
+    if (activeNoteFilter) list = list.filter(n => (n.tags || []).includes(activeNoteFilter));
+    if (activeNoteDate) list = list.filter(n => n.date === activeNoteDate);
+    return list;
+  }
+
+  function openNotesForDate(date) {
+    activeNoteDate = date;
+    activeNoteFilter = null;
+    switchTab('anotacoes');
+    window.scrollTo({ top: document.getElementById('noteList').getBoundingClientRect().top + window.scrollY - 80, behavior: 'smooth' });
   }
 
   function renderNoteFilterChips() {
     const usedTags = [...new Set(notes.flatMap(n => n.tags || []))];
-    noteFilterChips.innerHTML = `
-      <span class="tag-filter-chip ${!activeNoteFilter ? 'active' : ''}" data-tag="">Todas</span>
+    const dateChip = activeNoteDate ? `<span class="tag-filter-chip date-filter" id="noteDateFilterChip" title="Remover filtro de data">📅 ${formatDateBR(activeNoteDate)} ✕</span>` : '';
+    noteFilterChips.innerHTML = dateChip + `
+      <span class="tag-filter-chip ${!activeNoteFilter && !activeNoteDate ? 'active' : ''}" data-tag="">Todas</span>
       ${usedTags.map(t => `<span class="tag-filter-chip ${activeNoteFilter === t ? 'active' : ''}" data-tag="${escapeHtml(t)}">${escapeHtml(t)}</span>`).join('')}
     `;
-    noteFilterChips.querySelectorAll('.tag-filter-chip').forEach(el => {
+    noteFilterChips.querySelectorAll('.tag-filter-chip:not(.date-filter)').forEach(el => {
       el.addEventListener('click', () => {
         activeNoteFilter = el.dataset.tag || null;
+        if (!activeNoteFilter) activeNoteDate = null;
         renderNotes();
       });
     });
+    const dc = document.getElementById('noteDateFilterChip');
+    if (dc) dc.addEventListener('click', () => { activeNoteDate = null; renderNotes(); });
   }
 
   function renderNotes() {
     renderNoteFilterChips();
-    let filtered = notes.slice();
-    if (activeNoteFilter) {
-      filtered = filtered.filter(n => (n.tags || []).includes(activeNoteFilter));
-    }
+    let filtered = getVisibleNotes();
     // Sort chronological (most recent first by date, then by createdAt)
     filtered.sort((a, b) => {
       if (b.date !== a.date) return b.date.localeCompare(a.date);
@@ -3996,7 +3965,7 @@ ${usedCats.length > 0 ? `
     if (filtered.length === 0) {
       noteList.innerHTML = `<div class="card empty">
         <div class="empty-icon">📝</div>
-        <div>${activeNoteFilter ? 'Nenhuma anotação com essa tag.' : 'Nenhuma anotação ainda.'}</div>
+        <div>${activeNoteDate ? 'Nenhuma anotação neste dia.' : activeNoteFilter ? 'Nenhuma anotação com essa tag.' : 'Nenhuma anotação ainda.'}</div>
       </div>`;
       return;
     }
@@ -4016,7 +3985,7 @@ ${usedCats.length > 0 ? `
       return `<div class="note-card">
         <div class="note-card-header">
           <div>
-            <div class="note-card-date" onclick="changeNoteDate(${n.id})" style="cursor:pointer" title="Clique para editar data">${formatDateBR(n.date)}</div>
+            <div class="note-card-date" onclick="editNote(${n.id})" style="cursor:pointer" title="Editar anotação">${formatDateBR(n.date)}</div>
             ${title}
           </div>
           <div class="note-card-actions">
@@ -4024,7 +3993,7 @@ ${usedCats.length > 0 ? `
             <button class="icon-btn delete" onclick="deleteNote(${n.id})" title="Excluir">🗑️</button>
           </div>
         </div>
-        <div class="note-card-text">${escapeHtml(n.text)}</div>
+        <div class="note-card-text editable" ondblclick="editNote(${n.id})" title="Duplo clique para editar">${escapeHtml(n.text)}</div>
         ${tagBadges ? `<div class="note-card-tags">${tagBadges}</div>` : ''}
         ${photoStrip}
       </div>`;
@@ -4091,6 +4060,7 @@ ${usedCats.length > 0 ? `
   window.deleteNote = deleteNote;
   window.editNote = editNote;
   window.changeNoteDate = changeNoteDate;
+  window.openNotesForDate = openNotesForDate;
   window.viewNotePhoto = viewNotePhoto;
 
   render();

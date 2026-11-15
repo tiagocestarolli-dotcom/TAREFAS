@@ -1,5 +1,5 @@
 // Service Worker for Tarefas Realizadas PWA
-const CACHE_VERSION = 'v11-2026-06-08-embedcfg';
+const CACHE_VERSION = 'v12-2026-11-15-pdf-notas';
 const CACHE_NAME = `tarefas-${CACHE_VERSION}`;
 
 // Assets to cache (same-origin only — external CDNs are handled at runtime)
