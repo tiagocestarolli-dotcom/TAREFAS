@@ -103,6 +103,8 @@
   }
 
   /* ---------- Base ---------- */
+  /* v12.3: o Safari do iPhone amplia sozinho textos em blocos largos (Pitfall #17) */
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   body {
     font-family: var(--font-sans);
     background: var(--bg);
@@ -938,9 +940,10 @@
     font-size: var(--fs-label);
     border-bottom: 1px solid var(--warning-border);
   }
-  /* v12.2.1: o papel é SEMPRE um A4 real (210mm) — o relatório é diagramado em
-     pt/mm. Em telas estreitas o JS (fitPdfPreview) aplica `zoom` para a página
-     inteira caber, como uma miniatura fiel do PDF. Nunca encolher a largura. */
+  /* v12.3: no computador o papel é um A4 (210mm). No celular NÃO se reduz a
+     folha (o zoom da v12.2.1 quebrava no Safari): o papel ocupa a tela e o
+     relatório tem regras próprias de tela estreita (@media screen em RPT_STYLES).
+     A impressão usa só as regras-base + @media print. */
   .pdf-preview-body {
     background: var(--surface);
     width: 210mm;
@@ -1019,7 +1022,7 @@
     .pdf-preview-actions { flex: 1; }
     .pdf-preview-actions .pdf-preview-btn { flex: 1; }
     .pdf-preview-actions .pdf-preview-btn.secondary { flex: 0 0 auto; }
-    .pdf-preview-body { margin: var(--sp-3) auto; }
+    .pdf-preview-body { width: auto; margin: var(--sp-3); padding: var(--sp-6) var(--sp-5) var(--sp-8); }
   }
 
   /* ---------- Impressão: só o relatório ---------- */
@@ -1039,7 +1042,6 @@
     }
     .pdf-preview-toolbar, .pdf-preview-hint { display: none !important; }
     .pdf-preview-body {
-      zoom: 1 !important;
       background: white !important;
       box-shadow: none !important;
       margin: 0 !important;
@@ -2109,50 +2111,48 @@
       return;
     }
 
-    const groups = groupByDate(items);
+    // v12.3: diário em ordem cronológica (do dia mais antigo para o mais recente)
+    const groups = groupByDate(items).reverse();
     const allDates = items.map(t => t.date).sort();
     const uniqueDays = new Set(allDates).size;
-    if (pdfRange.value !== 'range') {
-      periodLabel = `${rptShortDate(allDates[0])} a ${rptShortDate(allDates[allDates.length - 1])}`;
-    }
+    const months = new Set(allDates.map(d => d.slice(0, 7))).size;
+    const first = allDates[0], last = allDates[allDates.length - 1];
+    periodLabel = `${rptShortDate(first)} a ${rptShortDate(last)}`;
     const noteCounts = countNotesByDate();
     const daysWithNotes = groups.filter(g => noteCounts[g.date]).length;
 
     const usedCatIds = new Set();
     items.forEach(t => { if (t.categoryId) usedCatIds.add(t.categoryId); });
     const usedCats = categories.filter(c => usedCatIds.has(c.id));
-    const legend = usedCats.map(c => `<span class="rpt-leg"><i style="background:${c.color}"></i>${escapeHtml(c.name)}</span>`).join('')
-      + (daysWithNotes ? `<span class="rpt-leg rpt-leg-note">✎ dia com anotação</span>` : '');
+    const legend = usedCats.map(c => `<span class="bk-leg"${c.colorText ? ` style="color:${readableColor(c.color)}"` : ''}><i style="background:${c.color}"></i>${escapeHtml(c.name)}</span>`).join('')
+      + (daysWithNotes ? `<span class="bk-leg-note">“N anotações”, sob a data, marca os dias que também têm anotações.</span>` : '');
 
-    const avg = (items.length / uniqueDays).toFixed(1).replace('.', ',');
-    let body = rptHeader('Tarefas Realizadas', escapeHtml(periodLabel),
-      [[items.length, 'tarefas'], [uniqueDays, 'dias'], [avg, 'por dia']], legend);
+    let body = bookFront('Tarefas Realizadas', `Diário de ${rptLongPeriod(first, last)}`,
+      [[items.length, items.length === 1 ? 'registro' : 'registros'], [uniqueDays, uniqueDays === 1 ? 'dia' : 'dias'], [months, months === 1 ? 'mês' : 'meses']],
+      'Como ler as cores', legend);
 
     let curMonth = '';
     groups.forEach(g => {
       const mk = g.date.slice(0, 7);
-      if (mk !== curMonth) {
-        curMonth = mk;
-        body += `<h2 class="rpt-month">${rptMonthLabel(g.date)}</h2>`;
-      }
-      const [y, m, d] = g.date.split('-');
-      const wd = RPT_WEEKDAYS[new Date(+y, +m - 1, +d).getDay()];
+      if (mk !== curMonth) { curMonth = mk; body += bookMonth(g.date); }
       const nc = noteCounts[g.date] || 0;
       const lis = g.items.map(t => {
         const cat = getCategory(t.categoryId);
-        const dot = cat ? ` style="--c:${cat.color}"` : '';
-        const txtStyle = (cat && cat.colorText) ? ` style="color:${readableColor(cat.color)};font-weight:500"` : '';
+        const styles = [];
+        if (cat) styles.push(`--c:${cat.color}`);
+        if (cat && cat.colorText) styles.push(`color:${readableColor(cat.color)}`);
         let text = escapeHtml(t.text.trim());
-        if (!/[.!?:;]$/.test(text)) text += '.';
+        if (!/[.!?:;…)]$/.test(text)) text += '.';
         const np = Array.isArray(t.photos) ? t.photos.length : 0;
-        const ph = np ? ` <span class="rpt-ph">📷${np > 1 ? ' ' + np : ''}</span>` : '';
-        return `<li${dot}><span${txtStyle}>${text}</span>${ph}</li>`;
+        const ph = np ? ` <span class="bk-ph">(${plural(np, 'foto', 'fotos')})</span>` : '';
+        return `<li${styles.length ? ` style="${styles.join(';')}"` : ''}>${text}${ph}</li>`;
       }).join('');
-      body += `<section class="rpt-day${g.items.length <= 14 ? ' keep' : ''}">
-        <div class="rpt-date"><div class="d">${+d}</div><div class="w">${wd}</div>${nc ? `<div class="n">✎ ${nc} ${nc > 1 ? 'anotações' : 'anotação'}</div>` : ''}</div>
-        <ul class="rpt-tasks">${lis}</ul>
+      body += `<section class="bk-day${g.items.length <= 8 ? ' keep' : ''}">
+        <div class="bk-date"><div class="d">${+g.date.slice(8)}</div><div class="w">${rptWeekday(g.date)}</div>${nc ? `<div class="n">${plural(nc, 'anotação', 'anotações')}</div>` : ''}</div>
+        <ul class="bk-entries">${lis}</ul>
       </section>`;
     });
+    body = `<div class="rpt-book">${body}</div>`;
 
     openPdfPreview(body, `Tarefas Realizadas — ${periodLabel}`);
     pdfModal.classList.remove('active');
@@ -2187,6 +2187,9 @@
       --rpt-accent: #2563eb;  --rpt-danger: #dc2626;  --rpt-warning: #b45309;  --rpt-warning-mark: #d97706;  --rpt-success: #059669;
       --rpt-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
       --rpt-serif: Georgia, 'Times New Roman', serif;
+      --rpt-book: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
+      --rpt-ink: #23272f;  --rpt-gold-ink: #7a5c22;  --rpt-note-ink: #5b21b6;
+      -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
       font-family: var(--rpt-sans);
       color: var(--rpt-text); font-size: 9.5pt; line-height: 1.45; background: #fff;
       -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -2252,6 +2255,84 @@
     .rpt-tag { font-size: 7pt; color: var(--rpt-note); border: .6pt solid var(--rpt-note-border); border-radius: 6pt; padding: 0 5pt; white-space: nowrap; line-height: 1.6; }
     .rpt-photos { display: flex; flex-wrap: wrap; gap: 4pt; margin-top: 6pt; }
     .rpt-photos img { height: 32mm; max-width: 48mm; object-fit: cover; border-radius: 2pt; break-inside: avoid; }
+    /* ===== v12.3: formato livro/diário (Realizadas e Anotações) =====
+       Regras-base = papel A4 (computador e impressão). Tela estreita: bloco
+       @media screen no fim. Nunca usar zoom/scale para "caber" no celular. */
+    .rpt-book { font-family: var(--rpt-book); color: var(--rpt-ink); padding: 0 20mm; font-size: 11pt; line-height: 1.6; font-weight: 400; }
+    .bk-label { font-family: var(--rpt-sans); font-size: 7.5pt; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--rpt-soft); }
+    /* Folha de rosto */
+    .bk-front { display: flex; flex-direction: column; min-height: 236mm; padding-top: 14mm; }
+    .bk-brand { font-family: var(--rpt-sans); font-size: 7.5pt; font-weight: 600; letter-spacing: .32em; text-transform: uppercase; color: var(--rpt-gold-ink); }
+    .bk-title { font-size: 40pt; font-weight: 400; line-height: 1.08; letter-spacing: -.01em; color: var(--rpt-navy); margin-top: 46mm; }
+    .bk-rule { width: 17mm; height: 1.5pt; background: var(--rpt-gold-ink); margin: 6mm 0 5mm; }
+    .bk-sub { font-size: 14pt; font-style: italic; line-height: 1.45; color: var(--rpt-soft); }
+    .bk-stats { display: flex; flex-wrap: wrap; gap: 6mm 14mm; margin-top: 18mm; }
+    .bk-stat b { display: block; font-size: 22pt; font-weight: 400; line-height: 1; color: var(--rpt-navy); font-variant-numeric: tabular-nums; }
+    .bk-stat span { display: block; margin-top: 4pt; font-family: var(--rpt-sans); font-size: 7.5pt; letter-spacing: .14em; text-transform: uppercase; color: var(--rpt-soft); }
+    .bk-foot { margin-top: auto; padding-top: 6mm; border-top: .75pt solid var(--rpt-rule); }
+    .bk-legend { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3pt 10mm; margin-top: 4mm; font-size: 11pt; }
+    .bk-leg { display: flex; align-items: center; gap: 8pt; }
+    .bk-leg i { width: 5.5pt; height: 5.5pt; flex-shrink: 0; background: var(--rpt-dot); }
+    .bk-leg-note { grid-column: 1 / -1; font-style: italic; font-size: 9.5pt; color: var(--rpt-note-ink); margin-top: 2pt; }
+    .bk-gen { margin-top: 5mm; font-family: var(--rpt-sans); font-size: 8pt; color: var(--rpt-soft); }
+    /* Capítulo = mês (sempre em página nova) */
+    .bk-month { break-before: page; page-break-before: always; padding-top: 10mm; margin-bottom: 9mm; break-after: avoid; page-break-after: avoid; }
+    .bk-month.run { break-before: auto; page-break-before: auto; padding-top: 6mm; margin-bottom: 6mm; }
+    .bk-month .y { font-family: var(--rpt-sans); font-size: 7.5pt; font-weight: 600; letter-spacing: .32em; color: var(--rpt-gold-ink); }
+    .bk-month h2 { font-size: 28pt; font-weight: 400; line-height: 1.1; color: var(--rpt-navy); margin-top: 2mm; }
+    /* Dia = seção: data na margem, texto em coluna de leitura */
+    .bk-day { display: grid; grid-template-columns: 23mm minmax(0, 1fr); column-gap: 6mm; padding: 5mm 0 6mm; border-top: .75pt solid var(--rpt-rule); }
+    .bk-day.keep { break-inside: avoid; page-break-inside: avoid; }
+    .bk-date { break-inside: avoid; page-break-inside: avoid; }
+    .bk-date .d { font-size: 24pt; font-weight: 400; line-height: 1; color: var(--rpt-navy); font-variant-numeric: lining-nums tabular-nums; }
+    .bk-date .w { margin-top: 3pt; font-family: var(--rpt-sans); font-size: 7.5pt; letter-spacing: .12em; text-transform: uppercase; color: var(--rpt-soft); }
+    .bk-date .n { margin-top: 5pt; font-size: 8.5pt; font-style: italic; color: var(--rpt-note-ink); }
+    .bk-entries { list-style: none; }
+    .bk-entries li { position: relative; padding-left: 13pt; break-inside: avoid; page-break-inside: avoid; orphans: 2; widows: 2; }
+    .bk-entries li + li { margin-top: 3.5pt; }
+    .bk-entries li::before { content: ""; position: absolute; left: 0; top: .62em; width: 4.5pt; height: 4.5pt; background: var(--c, var(--rpt-dot)); }
+    .bk-ph { font-size: 8.5pt; font-style: italic; color: var(--rpt-soft); white-space: nowrap; }
+    /* Anotação dentro do dia */
+    .bk-note + .bk-note { margin-top: 6mm; padding-top: 6mm; border-top: .5pt solid var(--rpt-line); }
+    .bk-note-title { font-size: 15pt; font-weight: 400; line-height: 1.25; color: var(--rpt-navy); margin-bottom: 2.5mm; break-after: avoid; page-break-after: avoid; }
+    .bk-note-text { white-space: pre-wrap; overflow-wrap: break-word; orphans: 3; widows: 3; }
+    .bk-note-tags { margin-top: 3mm; font-size: 9pt; font-style: italic; color: var(--rpt-note-ink); }
+    .bk-note .rpt-photos { margin-top: 4mm; }
+
+    @media print {
+      .bk-front { min-height: 240mm; }
+    }
+    @media screen and (max-width: 600px) {
+      .rpt-head { flex-direction: column; align-items: flex-start; gap: 8pt; }
+      .rpt-stats { text-align: left; }
+      .rpt-meta { flex-direction: column; align-items: flex-start; gap: 4pt; }
+      .rpt-gen { margin-left: 0; }
+      .rpt-book { padding: 0; font-size: 16px; line-height: 1.6; }
+      .bk-front { min-height: 0; padding: 8px 0 32px; }
+      .bk-title { font-size: 36px; margin-top: 56px; }
+      .bk-rule { margin: 20px 0 16px; width: 56px; }
+      .bk-sub { font-size: 18px; }
+      .bk-stats { margin-top: 36px; gap: 20px 32px; }
+      .bk-stat b { font-size: 26px; }
+      .bk-stat span, .bk-label, .bk-brand, .bk-month .y, .bk-date .w { font-size: 11px; }
+      .bk-foot { margin-top: 48px; padding-top: 20px; }
+      .bk-legend { grid-template-columns: 1fr; gap: 6px; margin-top: 14px; font-size: 16px; }
+      .bk-leg-note, .bk-note-tags { font-size: 14px; }
+      .bk-gen { font-size: 12px; margin-top: 16px; }
+      .bk-month { padding-top: 40px; margin-bottom: 20px; border-top: 1px solid var(--rpt-rule); }
+      .bk-month h2 { font-size: 32px; margin-top: 6px; }
+      .bk-day { display: block; padding: 20px 0 24px; }
+      .bk-date { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-bottom: 12px; }
+      .bk-date .d { font-size: 30px; }
+      .bk-date .w, .bk-date .n { margin-top: 0; }
+      .bk-date .n { font-size: 13px; }
+      .bk-entries li { padding-left: 16px; }
+      .bk-entries li + li { margin-top: 8px; }
+      .bk-entries li::before { width: 6px; height: 6px; top: .6em; }
+      .bk-ph { font-size: 13px; }
+      .bk-note-title { font-size: 21px; margin-bottom: 8px; }
+      .bk-note + .bk-note { margin-top: 24px; padding-top: 24px; }
+    }
   `;
 
   function rptShortDate(iso) { return iso.split('-').reverse().join('/'); }
@@ -2259,6 +2340,39 @@
   function rptGeneratedOn() {
     return new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
+  // v12.3: formato livro
+  const RPT_MONTHS_LC = RPT_MONTHS.map(m => m.toLowerCase());
+  function rptLongDate(iso, withYear = true) {
+    const [y, m, d] = iso.split('-');
+    return `${+d === 1 ? '1º' : +d} de ${RPT_MONTHS_LC[+m - 1]}${withYear ? ' de ' + y : ''}`;
+  }
+  function rptLongPeriod(from, to) {
+    if (from === to) return rptLongDate(from);
+    return `${rptLongDate(from, from.slice(0, 4) !== to.slice(0, 4))} a ${rptLongDate(to)}`;
+  }
+  function rptWeekday(iso) {
+    const [y, m, d] = iso.split('-');
+    return RPT_WEEKDAYS[new Date(+y, +m - 1, +d).getDay()];
+  }
+  function bookFront(title, subtitle, stats, legendLabel, legendHtml) {
+    return `<header class="bk-front">
+        <div class="bk-brand">TC · Development</div>
+        <h1 class="bk-title">${title}</h1>
+        <div class="bk-rule"></div>
+        <p class="bk-sub">${subtitle}</p>
+        <div class="bk-stats">${stats.map(([v, l]) => `<div class="bk-stat"><b>${v}</b><span>${l}</span></div>`).join('')}</div>
+        <div class="bk-foot">
+          ${legendHtml ? `<div class="bk-label">${legendLabel}</div><div class="bk-legend">${legendHtml}</div>` : ''}
+          <div class="bk-gen">Gerado em ${escapeHtml(rptGeneratedOn())}</div>
+        </div>
+      </header>`;
+  }
+  function bookMonth(iso, run) {
+    const [y, m] = iso.split('-');
+    return `<div class="bk-month${run ? ' run' : ''}"><div class="y">${y}</div><h2>${RPT_MONTHS[+m - 1]}</h2></div>`;
+  }
+  const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+
   function rptHeader(title, subtitle, stats, legendHtml) {
     return `<header class="rpt-head">
         <div>
@@ -2279,24 +2393,9 @@
     overlay.classList.add('active');
     overlay.scrollTop = 0;
     document.body.classList.add('printing-mode');
-    fitPdfPreview();
     // O título da página vira o nome sugerido do arquivo PDF
     if (docTitle) { _titleBeforePdf = document.title; document.title = docTitle; }
   }
-
-  // v12.2.1: miniatura fiel do A4 em telas estreitas (iPhone)
-  function fitPdfPreview() {
-    const paper = document.getElementById('pdfPreviewBody');
-    if (!paper) return;
-    paper.style.zoom = '';
-    const avail = document.documentElement.clientWidth - 24;
-    const w = paper.offsetWidth;
-    const z = w > 0 ? Math.min(1, avail / w) : 1;
-    if (z < 1) paper.style.zoom = z.toFixed(4);
-  }
-  window.addEventListener('resize', () => {
-    if (document.getElementById('pdfPreview').classList.contains('active')) fitPdfPreview();
-  });
 
   // ===== PDF: A Fazer =====
   function generateTodoPDF() {
@@ -2355,42 +2454,49 @@
 
   // ===== PDF: Anotações =====
   function generateNotesPDF() {
+    // v12.3: diário em ordem cronológica, agrupado por dia
     const sorted = getVisibleNotes().sort((a, b) => {
-      if (b.date !== a.date) return b.date.localeCompare(a.date);
-      return (b.createdAt || '').localeCompare(a.createdAt || '');
+      if (a.date !== b.date) return (a.date || '').localeCompare(b.date || '');
+      return (a.createdAt || '').localeCompare(b.createdAt || '');
     });
     if (sorted.length === 0) { alert('Sem anotações para exportar'); return; }
     const allTags = [...new Set(sorted.flatMap(n => n.tags || []))];
-    const days = new Set(sorted.map(n => n.date)).size;
+    const dates = [...new Set(sorted.map(n => n.date))];
 
     const filterParts = [];
     if (activeNoteFilter) filterParts.push('Tag: ' + escapeHtml(activeNoteFilter));
-    if (activeNoteDate) filterParts.push(escapeHtml(formatDateBR(activeNoteDate)));
+    if (activeNoteDate) filterParts.push(escapeHtml(rptLongDate(activeNoteDate)));
     const subtitle = filterParts.length ? filterParts.join(' · ')
-      : `${rptShortDate(sorted[sorted.length - 1].date)} a ${rptShortDate(sorted[0].date)}`;
+      : `Diário de ${rptLongPeriod(dates[0], dates[dates.length - 1])}`;
 
-    let body = rptHeader('Anotações', subtitle, [[sorted.length, 'anotações'], [days, 'dias'], [allTags.length, 'tags']]);
+    let body = bookFront('Anotações', subtitle,
+      [[sorted.length, sorted.length === 1 ? 'anotação' : 'anotações'], [dates.length, dates.length === 1 ? 'dia' : 'dias'], [allTags.length, allTags.length === 1 ? 'tag' : 'tags']]);
 
     let curMonth = '';
-    sorted.forEach(n => {
-      const mk = (n.date || '').slice(0, 7);
-      if (mk !== curMonth) { curMonth = mk; body += `<h2 class="rpt-month">${rptMonthLabel(n.date)}</h2>`; }
-      const tagBadges = (n.tags || []).map(t => `<span class="rpt-tag">${escapeHtml(t)}</span>`).join('');
-      const photos = (Array.isArray(n.photos) ? n.photos : []).map(p => getPhotoDisplayUrl(p)).filter(Boolean);
-      const photoHtml = photos.length ? `<div class="rpt-photos">${photos.map(u => `<img src="${escapeHtml(u)}" alt="">`).join('')}</div>` : '';
-      const keep = (n.text || '').length < 450 && photos.length === 0;
-      body += `<article class="rpt-note${keep ? ' keep' : ''}">
-        <div class="rpt-note-h">
-          <span class="rpt-note-date">${escapeHtml(formatDateBR(n.date))}</span>
-          ${tagBadges ? `<span class="rpt-tags">${tagBadges}</span>` : ''}
-        </div>
-        ${n.title ? `<div class="rpt-note-title">${escapeHtml(n.title)}</div>` : ''}
-        <div class="rpt-note-text">${escapeHtml(n.text || '')}</div>
-        ${photoHtml}
-      </article>`;
+    dates.forEach(date => {
+      const mk = (date || '').slice(0, 7);
+      if (mk !== curMonth) { curMonth = mk; body += bookMonth(date, true); }
+      const dayNotes = sorted.filter(n => n.date === date);
+      let short = dayNotes.length === 1;
+      const arts = dayNotes.map(n => {
+        const photos = (Array.isArray(n.photos) ? n.photos : []).map(p => getPhotoDisplayUrl(p)).filter(Boolean);
+        if ((n.text || '').length >= 450 || photos.length) short = false;
+        const photoHtml = photos.length ? `<div class="rpt-photos">${photos.map(u => `<img src="${escapeHtml(u)}" alt="">`).join('')}</div>` : '';
+        const tags = (n.tags || []).map(t => escapeHtml(t)).join(' · ');
+        return `<article class="bk-note">
+          ${n.title ? `<h3 class="bk-note-title">${escapeHtml(n.title)}</h3>` : ''}
+          <div class="bk-note-text">${escapeHtml((n.text || '').trim())}</div>
+          ${tags ? `<div class="bk-note-tags">${tags}</div>` : ''}
+          ${photoHtml}
+        </article>`;
+      }).join('');
+      body += `<section class="bk-day${short ? ' keep' : ''}">
+        <div class="bk-date"><div class="d">${+date.slice(8)}</div><div class="w">${rptWeekday(date)}</div></div>
+        <div>${arts}</div>
+      </section>`;
     });
 
-    openPdfPreview(body, 'Anotações');
+    openPdfPreview(`<div class="rpt-book">${body}</div>`, 'Anotações');
   }
 
   document.getElementById('todoPdfBtn').addEventListener('click', generateTodoPDF);
