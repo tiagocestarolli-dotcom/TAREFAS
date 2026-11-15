@@ -938,10 +938,13 @@
     font-size: var(--fs-label);
     border-bottom: 1px solid var(--warning-border);
   }
+  /* v12.2.1: o papel é SEMPRE um A4 real (210mm) — o relatório é diagramado em
+     pt/mm. Em telas estreitas o JS (fitPdfPreview) aplica `zoom` para a página
+     inteira caber, como uma miniatura fiel do PDF. Nunca encolher a largura. */
   .pdf-preview-body {
     background: var(--surface);
-    max-width: 210mm;
-    width: calc(100% - 48px);
+    width: 210mm;
+    max-width: none;
     margin: var(--sp-6) auto;
     padding: 14mm 14mm 16mm;
     box-shadow: 0 4px 24px rgba(0,0,0,0.15);
@@ -1011,7 +1014,12 @@
     .modal-note-fields { flex-direction: column; }
     .modal-note-fields input[type="date"] { flex: none; }
     #editNoteText { height: auto; min-height: 0; font-size: 16px; resize: none; }
-    .pdf-preview-toolbar { flex-wrap: wrap; }
+    .pdf-preview-toolbar { padding-top: calc(10px + env(safe-area-inset-top, 0px)); padding-bottom: 10px; }
+    .pdf-preview-title, .pdf-preview-hint { display: none; }
+    .pdf-preview-actions { flex: 1; }
+    .pdf-preview-actions .pdf-preview-btn { flex: 1; }
+    .pdf-preview-actions .pdf-preview-btn.secondary { flex: 0 0 auto; }
+    .pdf-preview-body { margin: var(--sp-3) auto; }
   }
 
   /* ---------- Impressão: só o relatório ---------- */
@@ -1031,6 +1039,7 @@
     }
     .pdf-preview-toolbar, .pdf-preview-hint { display: none !important; }
     .pdf-preview-body {
+      zoom: 1 !important;
       background: white !important;
       box-shadow: none !important;
       margin: 0 !important;
@@ -2270,9 +2279,24 @@
     overlay.classList.add('active');
     overlay.scrollTop = 0;
     document.body.classList.add('printing-mode');
+    fitPdfPreview();
     // O título da página vira o nome sugerido do arquivo PDF
     if (docTitle) { _titleBeforePdf = document.title; document.title = docTitle; }
   }
+
+  // v12.2.1: miniatura fiel do A4 em telas estreitas (iPhone)
+  function fitPdfPreview() {
+    const paper = document.getElementById('pdfPreviewBody');
+    if (!paper) return;
+    paper.style.zoom = '';
+    const avail = document.documentElement.clientWidth - 24;
+    const w = paper.offsetWidth;
+    const z = w > 0 ? Math.min(1, avail / w) : 1;
+    if (z < 1) paper.style.zoom = z.toFixed(4);
+  }
+  window.addEventListener('resize', () => {
+    if (document.getElementById('pdfPreview').classList.contains('active')) fitPdfPreview();
+  });
 
   // ===== PDF: A Fazer =====
   function generateTodoPDF() {
