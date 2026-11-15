@@ -829,6 +829,19 @@
     font-family: -apple-system, "Helvetica Neue", sans-serif;
     font-weight: 500;
   }
+  .brand-version {
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: #9ca3af;
+    font-family: -apple-system, "Helvetica Neue", sans-serif;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  .brand-version::before {
+    content: "·";
+    margin-right: 8px;
+    color: #d1d5db;
+  }
   .brand-year::before {
     content: "·";
     margin-right: 8px;
@@ -1617,6 +1630,7 @@
     <span class="brand-divider"></span>
     <span class="brand-text">Development</span>
     <span class="brand-year">2026</span>
+    <span class="brand-version" id="appVersion" hidden></span>
   </footer>
 
 </div>
@@ -4184,6 +4198,42 @@
   document.addEventListener('click', e => {
     document.querySelectorAll('.more-menu[open]').forEach(m => { if (!m.contains(e.target)) m.removeAttribute('open'); });
   });
+
+  // === v12.1: versão no rodapé — lida do service worker (fonte única: CACHE_VERSION) ===
+  (async function showAppVersion() {
+    const el = document.getElementById('appVersion');
+    if (!el) return;
+    const KEY = 'tarefas_app_version';
+    const show = full => {
+      const m = String(full).match(/v\d+(?:\.\d+)*/);
+      if (!m) return;
+      el.textContent = m[0];
+      el.title = 'Versão instalada: ' + full;
+      el.hidden = false;
+    };
+    let full = null;
+    // 1) Versão do cache do service worker ativo neste aparelho (o que o app está usando de fato)
+    try {
+      if (window.caches) {
+        const keys = (await caches.keys()).filter(k => k.startsWith('tarefas-')).sort();
+        if (keys.length) full = keys[keys.length - 1].replace(/^tarefas-/, '');
+      }
+    } catch (e) {}
+    // 2) Sem cache (primeira abertura, preview): lê o service-worker.js publicado
+    if (!full) {
+      try {
+        const r = await fetch('service-worker.js', { cache: 'no-store' });
+        const m = (await r.text()).match(/CACHE_VERSION\s*=\s*['"]([^'"]+)['"]/);
+        if (m) full = m[1];
+      } catch (e) {}
+    }
+    // 3) Offline e sem nada acima: última versão vista
+    try {
+      if (full) localStorage.setItem(KEY, full);
+      else full = localStorage.getItem(KEY);
+    } catch (e) {}
+    if (full) show(full);
+  })();
 </script>
 </body>
 </html>
